@@ -1,50 +1,144 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+  SYNC IMPACT REPORT
+  ===========================================================================
+  Version change: N/A (initial) → 1.0.0
+  Modified principles: N/A (first ratification)
+  Added sections:
+    - Principle I: Technology Stack & Architecture
+    - Principle II: Design & UI/UX Standards
+    - Principle III: State Management & Data Handling
+    - Principle IV: Code Quality & AI Adherence
+  Added custom sections:
+    - Mandatory Libraries & Versions
+    - Development Workflow
+  Removed sections: None
+  Templates requiring updates:
+    - plan-template.md    ✅ No update required (generic; constitution check
+      section will be filled per-feature by /speckit.plan)
+    - spec-template.md    ✅ No update required (generic)
+    - tasks-template.md   ✅ No update required (generic)
+  Follow-up TODOs: None
+  ===========================================================================
+-->
+
+# Ofuq (أفق) Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Technology Stack & Architecture
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- **Framework**: Next.js with the App Router MUST be used for all
+  routing and page rendering. Pages Router is NOT permitted.
+- **Styling**: Tailwind CSS MUST be the sole styling solution.
+  Raw CSS files, CSS-in-JS libraries, and inline `style` attributes
+  are NOT permitted unless required by a third-party dependency.
+- **UI Components**: `shadcn/ui` MUST be used for every UI primitive
+  (Button, Dialog, Input, Card, etc.). A custom component MUST NOT be
+  created when a `shadcn/ui` equivalent exists.
+- **Animations**: `framer-motion` MUST be used for page transitions
+  within the study loops and for any non-trivial animation. Tailwind
+  `animate-*` utilities MAY be used for micro-interactions
+  (hover states, spinners).
+- **Backend & Auth**: Firebase MUST be the exclusive backend.
+  Firestore is the database; Firebase Authentication with Google as
+  the sign-in provider handles user identity.
+  No alternative BaaS or custom backend is permitted.
+- **Theming**: `next-themes` MUST manage light/dark mode switching.
+  Dark mode MUST be the default theme.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Design & UI/UX Standards
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+- **Aesthetic**: The interface MUST follow a minimalist, clean,
+  Notion-like design language. Cluttered layouts, excessive
+  ornamentation, and non-essential visual elements are NOT permitted.
+- **Dashboard Charts**: All charts MUST be rendered using `recharts`
+  through the `shadcn/ui` chart wrappers (AreaChart, PieChart,
+  BarChart, RadialBarChart). No external charting library (Chart.js,
+  D3, Nivo, etc.) is permitted.
+- **Theme Consistency**: ALL custom colours and spacing tokens MUST
+  be defined as CSS variables in `hsl(var(--<token>))` format so
+  that light and dark modes toggle seamlessly without conditional
+  class logic.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. State Management & Data Handling
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- **Persistent Data**: Firebase Firestore MUST store all persistent
+  entities: Workspaces, Subjects, and Lectures.
+- **Ephemeral State**: React component state or a lightweight store
+  MUST manage the Study Loop Timer. The count-up timer MUST:
+  1. Run locally with minimal re-renders.
+  2. Handle browser tab switches gracefully (e.g., using
+     `document.visibilitychange` or `requestAnimationFrame`).
+  3. Trigger periodic motivational notifications.
+- **JSON Ingestion**: Lectures are created by pasting JSON generated
+  by NotebookLM. Before any JSON reaches Firestore:
+  1. A Zod schema MUST validate the pasted payload.
+  2. Validation errors MUST be surfaced to the user with clear,
+     actionable messages.
+  3. Malformed payloads MUST NOT be written to Firestore under
+     any circumstance.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Code Quality & AI Adherence
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- **Language**: TypeScript MUST be used across the entire codebase
+  with `strict` mode enabled in `tsconfig.json`.
+  All types and interfaces MUST be explicitly defined — especially
+  for the NotebookLM JSON schema and Firestore document shapes.
+- **Modularity**: Complex or reusable logic MUST be extracted into
+  custom hooks (e.g., `useStudyTimer`, `useWorkspaceData`).
+  Business logic MUST NOT reside directly in page or layout
+  components.
+- **Anti-Hallucination**: The AI agent MUST strictly follow these
+  specifications. It MUST NOT:
+  1. Invent features not present in the approved specification.
+  2. Substitute, swap, or add technologies outside the approved
+     stack without explicit user approval.
+  3. Deviate from the Notion-like aesthetic defined in Principle II.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Mandatory Libraries & Versions
+
+| Category | Library | Notes |
+|---|---|---|
+| Framework | `next` (App Router) | Latest stable |
+| Styling | `tailwindcss` | Latest v4+ |
+| UI Kit | `shadcn/ui` | CLI-installed components |
+| Animation | `framer-motion` | Page transitions & study loops |
+| Charts | `recharts` | Via `shadcn/ui` chart wrappers |
+| Theming | `next-themes` | Dark mode default |
+| Backend | `firebase` / `firebase-admin` | Auth + Firestore |
+| Validation | `zod` | JSON ingestion schema |
+| Language | TypeScript (`strict`) | Entire codebase |
+
+Adding a library outside this table requires explicit user approval
+and an amendment to this constitution.
+
+## Development Workflow
+
+- **Component-first**: Build and test individual `shadcn/ui`-based
+  components before assembling pages.
+- **Type-driven**: Define Zod schemas and TypeScript interfaces
+  before implementing the feature that consumes them.
+- **Hook extraction**: When a component exceeds ~50 lines of
+  non-JSX logic, extract into a dedicated hook under `hooks/`.
+- **Commit discipline**: Each commit SHOULD represent a single
+  logical change (one feature, one fix, one refactor).
+- **Accessibility**: Leverage built-in `shadcn/ui` ARIA attributes;
+  every interactive element MUST be keyboard-navigable.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This Constitution is the highest-authority document for the Ofuq
+  project. It supersedes all other practices, guidelines, and ad-hoc
+  decisions.
+- **Amendments** require:
+  1. A written proposal describing the change and its rationale.
+  2. Explicit user approval before the amendment takes effect.
+  3. An updated version number following Semantic Versioning
+     (MAJOR for principle removals/redefinitions, MINOR for
+     additions/expansions, PATCH for clarifications/typos).
+- **Compliance review**: Every specification, plan, and task list
+  generated by speckit commands MUST include a Constitution Check
+  gate that verifies adherence to these principles before
+  implementation proceeds.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-02-22 | **Last Amended**: 2026-02-22
