@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import { StudyActivityChart, RawSession } from "@/components/dashboard/study-activity-chart";
 import { DailyGoalChart } from "@/components/dashboard/daily-goal-chart";
 import { SubjectTimeChart, TimePerSubjectDataPoint } from "@/components/dashboard/subject-time-chart";
-import { QuizStatsChart, QuizStatDataPoint } from "@/components/dashboard/quiz-stats-chart";
+import { QuizPerformanceChart, QuizPerformanceDataPoint } from "@/components/dashboard/quiz-performance-chart";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Share2 } from "lucide-react";
@@ -20,6 +20,9 @@ interface SessionDoc {
     lectureId: string;
     durationMinutes: number;
     date: string;
+    quizScore?: number;
+    totalQuestions?: number;
+    scorePercent?: number;
 }
 
 const DAILY_GOAL_MINUTES = 120;
@@ -74,14 +77,21 @@ export default function WorkspacePage() {
         minutes,
     }));
 
-    // ── Session count per subject (for quiz/sessions chart) ──
-    const sessionCounts = new Map<string, number>();
-    sessions.forEach((s) =>
-        sessionCounts.set(s.subjectId, (sessionCounts.get(s.subjectId) || 0) + 1)
-    );
-    const quizData: QuizStatDataPoint[] = Array.from(sessionCounts.entries()).map(([id, count]) => ({
+    // ── Quiz Performance per subject ──
+    const quizStats = new Map<string, { totalScore: number; count: number }>();
+    sessions.forEach((s) => {
+        if (s.scorePercent !== undefined) {
+            const current = quizStats.get(s.subjectId) || { totalScore: 0, count: 0 };
+            quizStats.set(s.subjectId, {
+                totalScore: current.totalScore + s.scorePercent,
+                count: current.count + 1,
+            });
+        }
+    });
+
+    const quizPerformanceData: QuizPerformanceDataPoint[] = Array.from(quizStats.entries()).map(([id, stat]) => ({
         subject: subjectNames.get(id) ?? id,
-        sessions: count,
+        score: Math.round(stat.totalScore / stat.count),
     }));
 
     // ── Daily Goal ──
@@ -156,7 +166,7 @@ export default function WorkspacePage() {
                         <SubjectTimeChart data={subjectData} />
                     </div>
                     <div className="min-w-0 md:col-span-2">
-                        <QuizStatsChart data={quizData} />
+                        <QuizPerformanceChart data={quizPerformanceData} />
                     </div>
                 </div>
             )}

@@ -167,21 +167,32 @@ export default function LecturePage() {
         const saveSession = async () => {
             try {
                 const durationMinutes = Math.max(1, Math.round(finalElapsed / 60000));
-                await addDoc(collection(db, "workspaces", workspaceId, "sessions"), {
+
+                const sessionData: any = {
                     subjectId,
                     lectureId,
                     userId: user?.uid,
                     durationMinutes,
                     date: new Date().toISOString().split("T")[0],
                     createdAt: serverTimestamp(),
-                });
+                };
+
+                const currentQuiz = lecture?.quiz || [];
+                if (!skippedQuiz && currentQuiz.length > 0) {
+                    const correctCount = answers.filter((a) => a.correct).length;
+                    sessionData.quizScore = correctCount;
+                    sessionData.totalQuestions = currentQuiz.length;
+                    sessionData.scorePercent = Math.round((correctCount / currentQuiz.length) * 100);
+                }
+
+                await addDoc(collection(db, "workspaces", workspaceId, "sessions"), sessionData);
                 setSessionSaved(true);
             } catch {
                 toast.error("Could not save session. Please try again.");
             }
         };
         saveSession();
-    }, [step, sessionSaved, workspaceId, subjectId, lectureId, finalElapsed]);
+    }, [step, sessionSaved, workspaceId, subjectId, lectureId, finalElapsed, user?.uid, skippedQuiz, lecture?.quiz, answers]);
 
     // Quiz Helpers
     const quiz = lecture?.quiz || [];
