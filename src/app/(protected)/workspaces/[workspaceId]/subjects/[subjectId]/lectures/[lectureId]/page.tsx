@@ -357,6 +357,10 @@ export default function LecturePage() {
                                                 <span className="hidden sm:inline">Pause</span>
                                             </Button>
                                         )}
+                                        <Button size="sm" variant="destructive" onClick={handleSaveWithoutQuiz} className="gap-1.5 shadow-sm">
+                                            <Square className="h-3.5 w-3.5 fill-current" />
+                                            End <span className="hidden sm:inline">& Save</span>
+                                        </Button>
                                     </motion.div>
                                 )}
                             </div>
