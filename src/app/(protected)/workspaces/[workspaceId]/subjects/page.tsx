@@ -211,12 +211,12 @@ export default function SubjectsPage() {
                             )}
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="flex overflow-x-auto gap-4 pb-4 pt-1 snap-x snap-mandatory custom-scrollbar">
                             {subject.lectures.map((lecture) => (
                                 <Link
                                     key={lecture.id}
                                     href={`/workspaces/${workspaceId}/subjects/${subject.id}/lectures/${lecture.id}`}
-                                    className="group"
+                                    className="group shrink-0 snap-start w-[280px] sm:w-[320px]"
                                 >
                                     <Card className="h-full transition-all group-hover:border-primary/50 group-hover:shadow-md">
                                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -246,7 +246,7 @@ export default function SubjectsPage() {
                             {subject.lectures.length === 0 && activeWorkspace?.role === "owner" && (
                                 <div
                                     onClick={() => handleAddLecture(subject.id)}
-                                    className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent/20 hover:border-accent transition-all min-h-[140px]"
+                                    className="shrink-0 snap-start w-[280px] sm:w-[320px] border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent/20 hover:border-accent transition-all min-h-[140px]"
                                 >
                                     <Plus className="h-6 w-6 text-muted-foreground mb-2" />
                                     <p className="text-xs font-medium text-muted-foreground">Add your first lecture</p>
