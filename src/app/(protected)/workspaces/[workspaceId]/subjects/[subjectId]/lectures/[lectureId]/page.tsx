@@ -328,10 +328,10 @@ export default function LecturePage() {
                         <motion.div
                             layout
                             className={cn(
-                                "z-50 transition-all duration-700 w-full mb-6",
+                                "transition-all duration-700 w-full mb-6 relative",
                                 !showQuiz
                                     ? "flex flex-col items-center justify-center flex-1 my-auto pt-24"
-                                    : "sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-4 shadow-sm px-4"
+                                    : "bg-background border-b pb-4 pt-4 shadow-sm px-4"
                             )}
                         >
                             <div className={cn("mx-auto flex transition-all duration-700", !showQuiz ? "flex-col items-center space-y-4" : "items-center justify-between w-full max-w-2xl")}>

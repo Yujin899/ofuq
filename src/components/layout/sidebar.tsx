@@ -208,11 +208,11 @@ export function Sidebar() {
                                 <div className="h-8 w-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-xs font-black border border-primary/20 text-primary uppercase shadow-inner">
                                     {userIdentifier[0]}
                                 </div>
-                                <div className="flex flex-col items-start overflow-hidden">
-                                    <p className="text-xs font-bold truncate text-foreground leading-tight tracking-tight uppercase">
+                                <div className="flex flex-col items-start overflow-hidden min-w-0">
+                                    <p className="text-xs font-bold truncate text-foreground leading-tight tracking-tight uppercase w-full text-left">
                                         {userIdentifier}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground truncate font-medium">
+                                    <p className="text-[10px] text-muted-foreground truncate font-medium w-full text-left">
                                         {user?.email}
                                     </p>
                                 </div>
@@ -220,7 +220,7 @@ export function Sidebar() {
                             <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground opacity-50" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" side="right" sideOffset={16}>
+                    <DropdownMenuContent className="w-56" align="center" side="top" sideOffset={8}>
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="gap-2 cursor-pointer">
