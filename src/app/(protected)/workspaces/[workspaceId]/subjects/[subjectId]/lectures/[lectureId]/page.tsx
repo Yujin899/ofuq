@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 type Step = "intro" | "timer" | "completion";
 type Phase = "quiz" | "results";
@@ -61,6 +62,7 @@ function formatElapsed(ms: number) {
 export default function LecturePage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const workspaceId = params.workspaceId as string;
     const subjectId = params.subjectId as string;
     const lectureId = params.lectureId as string;
@@ -168,6 +170,7 @@ export default function LecturePage() {
                 await addDoc(collection(db, "workspaces", workspaceId, "sessions"), {
                     subjectId,
                     lectureId,
+                    userId: user?.uid,
                     durationMinutes,
                     date: new Date().toISOString().split("T")[0],
                     createdAt: serverTimestamp(),

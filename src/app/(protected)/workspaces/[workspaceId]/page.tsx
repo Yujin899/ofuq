@@ -3,7 +3,7 @@
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StudyActivityChart, RawSession } from "@/components/dashboard/study-activity-chart";
 import { DailyGoalChart } from "@/components/dashboard/daily-goal-chart";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Share2 } from "lucide-react";
 import { ShareWorkspaceDialog } from "@/components/workspaces/share-workspace-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SessionDoc {
     subjectId: string;
@@ -27,6 +28,7 @@ export default function WorkspacePage() {
     const params = useParams();
     const router = useRouter();
     const { workspaces, setActiveWorkspace } = useWorkspace();
+    const { user } = useAuth();
     const workspaceId = params.workspaceId as string;
     const workspace = workspaces.find((w: { id: string }) => w.id === workspaceId);
 
@@ -40,10 +42,10 @@ export default function WorkspacePage() {
     }, [workspace, setActiveWorkspace]);
 
     useEffect(() => {
-        if (!workspaceId) return;
+        if (!workspaceId || !user?.uid) return;
         const fetchAll = async () => {
             const [sessionsSnap, subjectsSnap] = await Promise.all([
-                getDocs(collection(db, "workspaces", workspaceId, "sessions")),
+                getDocs(query(collection(db, "workspaces", workspaceId, "sessions"), where("userId", "==", user.uid))),
                 getDocs(collection(db, "workspaces", workspaceId, "subjects")),
             ]);
             setSessions(sessionsSnap.docs.map((d) => d.data() as SessionDoc));
@@ -53,7 +55,7 @@ export default function WorkspacePage() {
             setLoading(false);
         };
         fetchAll();
-    }, [workspaceId]);
+    }, [workspaceId, user?.uid]);
 
     // ── Raw sessions for activity chart ──
     const rawSessions: RawSession[] = sessions.map((s) => ({
