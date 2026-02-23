@@ -4,10 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Lecture } from "@/types/lecture";
+import { Lecture, QuizQuestion } from "@/types/lecture";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
     ChevronLeft,
     Languages,
@@ -18,18 +20,34 @@ import {
     Pause,
     Play,
     Square,
+    ChevronRight,
+    Trophy,
+    RotateCcw,
+    XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 type Step = "intro" | "timer" | "completion";
+type Phase = "quiz" | "results";
 
 const pageVariants = {
     initial: { opacity: 0, y: 18 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
     exit: { opacity: 0, y: -12, transition: { duration: 0.2, ease: "easeIn" as const } },
 };
+
+const TYPE_BADGE: Record<string, { label: string; variant: "outline" | "secondary" | "destructive" }> = {
+    single: { label: "Single Choice", variant: "outline" },
+    multi: { label: "Multiple Choice", variant: "secondary" },
+    case: { label: "Clinical Case", variant: "destructive" },
+};
+
+interface AnswerRecord {
+    selected: number[];
+    correct: boolean;
+}
 
 function formatElapsed(ms: number) {
     const totalSeconds = Math.floor(ms / 1000);
@@ -56,12 +74,17 @@ export default function LecturePage() {
     const [elapsed, setElapsed] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    // Accumulated elapsed ms before the latest resume
     const accumulatedRef = useRef(0);
-    // Timestamp of latest segment start (set on start or resume)
     const segmentStartRef = useRef(0);
 
-    // Completion
+    // Quiz state
+    const [quizPhase, setQuizPhase] = useState<Phase>("quiz");
+    const [currentIdx, setCurrentIdx] = useState(0);
+    const [selected, setSelected] = useState<Set<number>>(new Set());
+    const [submitted, setSubmitted] = useState(false);
+    const [answers, setAnswers] = useState<AnswerRecord[]>([]);
+
+    // Completion state
     const [sessionSaved, setSessionSaved] = useState(false);
     const [finalElapsed, setFinalElapsed] = useState(0);
 
@@ -85,7 +108,6 @@ export default function LecturePage() {
         }, 500);
     };
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, []);
@@ -102,7 +124,6 @@ export default function LecturePage() {
 
     const handlePause = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        // Freeze accumulated
         accumulatedRef.current = elapsed;
         setIsPaused(true);
     };
@@ -115,7 +136,6 @@ export default function LecturePage() {
 
     const handleStopSession = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        // Capture final: if running, add current segment
         const finalMs = !isPaused
             ? accumulatedRef.current + (Date.now() - segmentStartRef.current)
             : accumulatedRef.current;
@@ -144,6 +164,69 @@ export default function LecturePage() {
         saveSession();
     }, [step, sessionSaved, workspaceId, subjectId, lectureId, finalElapsed]);
 
+    // Quiz Helpers
+    const quiz = lecture?.quiz || [];
+    const q: QuizQuestion | undefined = quiz[currentIdx];
+    const progress = quiz.length > 0 ? ((currentIdx + 1) / quiz.length) * 100 : 0;
+    const isLastQuestion = quiz.length > 0 ? currentIdx === quiz.length - 1 : false;
+
+    const toggleOption = (idx: number) => {
+        if (submitted || !q) return;
+        if (q.type === "multi") {
+            setSelected((prev) => {
+                const next = new Set(prev);
+                next.has(idx) ? next.delete(idx) : next.add(idx);
+                return next;
+            });
+        } else {
+            setSelected(new Set([idx]));
+        }
+    };
+
+    const handleSubmitQuiz = () => {
+        if (!q) return;
+        const sel = Array.from(selected).sort();
+        const correct = [...q.correctAnswers].sort();
+        const isCorrect = JSON.stringify(sel) === JSON.stringify(correct);
+        setAnswers((prev) => [...prev, { selected: sel, correct: isCorrect }]);
+        setSubmitted(true);
+    };
+
+    const handleNextQuiz = () => {
+        if (isLastQuestion) {
+            setQuizPhase("results");
+        } else {
+            setCurrentIdx((i) => i + 1);
+            setSelected(new Set());
+            setSubmitted(false);
+        }
+    };
+
+    const handleRestartQuiz = () => {
+        setCurrentIdx(0);
+        setSelected(new Set());
+        setSubmitted(false);
+        setAnswers([]);
+        setQuizPhase("quiz");
+    };
+
+    const correctCount = answers.filter((a) => a.correct).length;
+    const scorePercent = quiz.length > 0 ? Math.round((correctCount / quiz.length) * 100) : 0;
+
+    const getOptionStyle = (optIdx: number) => {
+        if (!q) return "";
+        if (!submitted) {
+            return selected.has(optIdx)
+                ? "border-primary bg-primary/5 text-foreground"
+                : "border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/60 hover:text-foreground";
+        }
+        const isCorrect = q.correctAnswers.includes(optIdx);
+        const isSelected = selected.has(optIdx);
+        if (isCorrect) return "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400";
+        if (isSelected && !isCorrect) return "border-red-400 bg-red-400/10 text-red-600 dark:text-red-400";
+        return "border-border bg-muted/20 text-muted-foreground";
+    };
+
     if (loading) {
         return (
             <div className="max-w-2xl mx-auto space-y-6 pt-4">
@@ -164,12 +247,12 @@ export default function LecturePage() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto pb-16">
+        <div className={cn("mx-auto pb-16", step === "timer" ? "w-full max-w-full" : "max-w-2xl")}>
             <AnimatePresence mode="wait">
 
                 {/* ─────────── STEP 1: INTRO ─────────── */}
                 {step === "intro" && (
-                    <motion.div key="intro" {...pageVariants} className="space-y-6">
+                    <motion.div key="intro" {...pageVariants} className="space-y-6 w-full max-w-2xl mx-auto">
                         <div className="space-y-3">
                             <Button
                                 variant="ghost"
@@ -222,69 +305,190 @@ export default function LecturePage() {
                     </motion.div>
                 )}
 
-                {/* ─────────── STEP 2: FOCUS TIMER ─────────── */}
+                {/* ─────────── STEP 2: ACTIVE SESSION & QUIZ ─────────── */}
                 {step === "timer" && (
-                    <motion.div key="timer" {...pageVariants} className="flex flex-col items-center justify-center min-h-[75vh] space-y-10 text-center">
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm font-medium">
-                                <Timer className={cn("h-4 w-4 text-primary", !isPaused && "animate-pulse")} />
-                                {isPaused ? "Session Paused" : "Focus Session"}
+                    <motion.div key="timer" {...pageVariants} className="flex flex-col min-h-screen pb-24 relative -mx-4 sm:mx-0">
+                        {/* Sticky Timer Header */}
+                        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-4 shadow-sm mb-6 px-4">
+                            <div className="flex items-center justify-between max-w-2xl mx-auto">
+                                <div className="space-y-1 w-full flex items-center justify-between sm:block">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 w-full">
+                                        <div className="flex items-center gap-2 text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0">
+                                            <Timer className={cn("h-3.5 w-3.5 text-primary", !isPaused && "animate-pulse")} />
+                                            {isPaused ? "Paused" : "Focusing"}
+                                        </div>
+                                        <p className="text-xl sm:text-2xl font-mono font-bold tracking-tight tabular-nums transition-colors mt-0.5 sm:mt-0 grow">
+                                            {formatElapsed(elapsed)}
+                                        </p>
+                                        <div className="flex gap-2 shrink-0 self-end sm:self-auto">
+                                            {isPaused ? (
+                                                <Button size="sm" variant="outline" onClick={handleResume} className="gap-2">
+                                                    <Play className="h-4 w-4" />
+                                                    <span className="hidden sm:inline">Resume</span>
+                                                </Button>
+                                            ) : (
+                                                <Button size="sm" variant="outline" onClick={handlePause} className="gap-2">
+                                                    <Pause className="h-4 w-4" />
+                                                    <span className="hidden sm:inline">Pause</span>
+                                                </Button>
+                                            )}
+                                            <Button size="sm" variant="destructive" onClick={handleStopSession} className="gap-1.5 shadow-sm">
+                                                <Square className="h-3.5 w-3.5 fill-current" />
+                                                End <span className="hidden sm:inline">& Save</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <h2 className="text-base font-medium text-foreground/70">{lecture.title}</h2>
                         </div>
 
-                        <div className="space-y-2">
-                            <motion.p
-                                key={isPaused ? "paused" : "running"}
-                                className={cn(
-                                    "text-8xl font-mono font-bold tracking-tight tabular-nums transition-colors",
-                                    isPaused ? "text-muted-foreground" : "text-foreground"
-                                )}
-                            >
-                                {formatElapsed(elapsed)}
-                            </motion.p>
-                            <p className="text-xs text-muted-foreground">
-                                {isPaused ? "timer paused — press resume to continue" : "time elapsed"}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col gap-3 w-full max-w-xs">
-                            {isPaused ? (
-                                <Button
-                                    size="lg"
-                                    onClick={handleResume}
-                                    className="w-full py-5 gap-2 font-semibold"
-                                >
-                                    <Play className="h-4 w-4" />
-                                    Resume Session
-                                </Button>
+                        {/* Integrated Quiz Content */}
+                        <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 flex-1">
+                            {quiz.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center text-center mt-12 space-y-4">
+                                    <p className="text-muted-foreground">No quiz questions available for this lecture.</p>
+                                </div>
                             ) : (
-                                <Button
-                                    size="lg"
-                                    variant="outline"
-                                    onClick={handlePause}
-                                    className="w-full py-5 gap-2 font-semibold"
-                                >
-                                    <Pause className="h-4 w-4" />
-                                    Pause Session
-                                </Button>
+                                <>
+                                    {quizPhase === "quiz" && q && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            {/* Header */}
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1 space-y-1">
+                                                    <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                                                        <span>QUESTION {currentIdx + 1} OF {quiz.length}</span>
+                                                    </div>
+                                                    <Progress value={progress} className="h-1.5" />
+                                                </div>
+                                            </div>
+
+                                            {/* Question Card */}
+                                            <Card className="border-none shadow-sm bg-card/50">
+                                                <CardHeader className="pb-3">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <Badge variant={TYPE_BADGE[q.type].variant} className="shrink-0 text-[10px]">
+                                                            {TYPE_BADGE[q.type].label}
+                                                        </Badge>
+                                                    </div>
+                                                    <CardTitle className="text-lg font-medium leading-relaxed mt-2">
+                                                        {q.question}
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-2">
+                                                    {q.options.map((opt, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => toggleOption(i)}
+                                                            disabled={submitted}
+                                                            className={cn(
+                                                                "w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border text-sm transition-all duration-150",
+                                                                getOptionStyle(i),
+                                                                !submitted && "cursor-pointer"
+                                                            )}
+                                                        >
+                                                            <span className="font-mono text-[11px] opacity-60 shrink-0 mt-0.5">
+                                                                {String.fromCharCode(65 + i)}.
+                                                            </span>
+                                                            <span className="leading-relaxed">{opt}</span>
+                                                            {submitted && q.correctAnswers.includes(i) && (
+                                                                <CheckCircle2 className="h-4 w-4 ml-auto shrink-0 text-green-500 mt-0.5" />
+                                                            )}
+                                                            {submitted && selected.has(i) && !q.correctAnswers.includes(i) && (
+                                                                <XCircle className="h-4 w-4 ml-auto shrink-0 text-red-400 mt-0.5" />
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* Explanation */}
+                                            {submitted && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 8 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className={cn(
+                                                        "rounded-lg border px-4 py-3 text-sm leading-relaxed",
+                                                        answers[answers.length - 1]?.correct
+                                                            ? "border-green-400/40 bg-green-500/5 text-green-700 dark:text-green-400/90"
+                                                            : "border-red-400/40 bg-red-500/5 text-red-700 dark:text-red-400/90"
+                                                    )}
+                                                >
+                                                    <p className="font-semibold mb-1">
+                                                        {answers[answers.length - 1]?.correct ? "✓ Correct!" : "✗ Not quite."}
+                                                    </p>
+                                                    <p className="text-foreground/80">{q.explanation}</p>
+                                                </motion.div>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-3 pt-2">
+                                                {!submitted ? (
+                                                    <Button
+                                                        onClick={handleSubmitQuiz}
+                                                        disabled={selected.size === 0}
+                                                        className="flex-1 py-6 font-semibold shadow-md"
+                                                    >
+                                                        Submit Answer
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        onClick={handleNextQuiz}
+                                                        className="flex-1 py-6 font-semibold gap-2 shadow-md hover:translate-x-1 transition-transform"
+                                                    >
+                                                        {isLastQuestion ? "See Quiz Results" : "Next Question"}
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {quizPhase === "results" && (
+                                        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                                            {/* Score Card */}
+                                            <Card className="border-primary/20 shadow-lg bg-primary/5 text-center overflow-hidden relative">
+                                                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+                                                <CardContent className="pt-8 pb-6 space-y-4 relative z-10">
+                                                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-background shadow-sm border">
+                                                        <Trophy className="h-10 w-10 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-5xl font-bold tabular-nums text-foreground">{scorePercent}%</p>
+                                                        <p className="text-sm font-medium text-muted-foreground mt-1">
+                                                            {correctCount} of {quiz.length} correct
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-sm font-medium">
+                                                        {scorePercent >= 80
+                                                            ? "Excellent work! 🎉 You've mastered this topic."
+                                                            : scorePercent >= 60
+                                                                ? "Good effort! Review the explanations to solidify your knowledge."
+                                                                : "Keep studying — you've got this. Review and retry!"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            <div className="flex flex-col gap-3 pt-2">
+                                                <Button onClick={handleStopSession} size="lg" className="w-full gap-2 font-bold shadow-lg shadow-primary/20">
+                                                    <CheckCircle2 className="h-5 w-5" />
+                                                    Complete Session & Save Time
+                                                </Button>
+                                                <Button onClick={handleRestartQuiz} variant="outline" className="w-full gap-2 font-medium">
+                                                    <RotateCcw className="h-4 w-4" />
+                                                    Retry Quiz Selection
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
-                            <Button
-                                variant="destructive"
-                                size="lg"
-                                onClick={handleStopSession}
-                                className="w-full py-5 gap-2 font-semibold"
-                            >
-                                <Square className="h-4 w-4 fill-current" />
-                                End & Save Session
-                            </Button>
                         </div>
                     </motion.div>
                 )}
 
                 {/* ─────────── STEP 3: COMPLETION ─────────── */}
                 {step === "completion" && (
-                    <motion.div key="completion" {...pageVariants} className="flex flex-col items-center justify-center min-h-[75vh] space-y-8 text-center">
+                    <motion.div key="completion" {...pageVariants} className="flex flex-col items-center justify-center min-h-[75vh] space-y-8 text-center max-w-2xl mx-auto w-full px-4 sm:px-0">
                         <div className="space-y-4">
                             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
                                 <CheckCircle2 className="h-10 w-10 text-primary" />
@@ -296,21 +500,26 @@ export default function LecturePage() {
                             <p className="text-5xl font-mono font-bold tabular-nums text-primary">
                                 {formatElapsed(finalElapsed)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                                {Math.max(1, Math.round(finalElapsed / 60000))} min logged to your dashboard.
+                            <p className="text-xs font-medium text-muted-foreground mt-2">
+                                {Math.max(1, Math.round(finalElapsed / 60000))} minutes officially logged to your dashboard.
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-3 w-full max-w-xs">
+                        {quiz.length > 0 && (
+                            <Card className="w-full max-w-sm mx-auto shadow-sm border-dashed bg-muted/20">
+                                <CardContent className="p-4 flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-muted-foreground">Quiz Score</span>
+                                    <div className="flex items-center gap-2">
+                                        <Trophy className="h-4 w-4 text-primary" />
+                                        <span className="font-bold">{scorePercent}%</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
                             <Button
-                                className="w-full gap-2"
-                                onClick={() => router.push(`/workspaces/${workspaceId}/subjects/${subjectId}/lectures/${lectureId}/quiz`)}
-                            >
-                                Take Quiz
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="w-full gap-2"
+                                className="w-full py-6 font-semibold shadow-md gap-2"
                                 onClick={() => router.push(`/workspaces/${workspaceId}`)}
                             >
                                 <LayoutDashboard className="h-4 w-4" />
