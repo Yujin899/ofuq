@@ -77,6 +77,11 @@ export default function LecturePage() {
     const accumulatedRef = useRef(0);
     const segmentStartRef = useRef(0);
 
+    // Focus state
+    const [focusPhase, setFocusPhase] = useState<"running" | "choosing">("running");
+    const [skippedQuiz, setSkippedQuiz] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false);
+
     // Quiz state
     const [quizPhase, setQuizPhase] = useState<Phase>("quiz");
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -134,12 +139,23 @@ export default function LecturePage() {
         startTick();
     };
 
+    const handleSaveWithoutQuiz = () => {
+        setSkippedQuiz(true);
+        handleStopSession();
+    };
+
+    const handleFinishQuizWithResults = () => {
+        setSkippedQuiz(false);
+        handleStopSession();
+    };
+
     const handleStopSession = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         const finalMs = !isPaused
             ? accumulatedRef.current + (Date.now() - segmentStartRef.current)
             : accumulatedRef.current;
         setFinalElapsed(finalMs);
+        setIsPaused(true);
         setStep("completion");
     };
 
@@ -194,7 +210,7 @@ export default function LecturePage() {
 
     const handleNextQuiz = () => {
         if (isLastQuestion) {
-            setQuizPhase("results");
+            handleFinishQuizWithResults();
         } else {
             setCurrentIdx((i) => i + 1);
             setSelected(new Set());
@@ -308,179 +324,178 @@ export default function LecturePage() {
                 {/* ─────────── STEP 2: ACTIVE SESSION & QUIZ ─────────── */}
                 {step === "timer" && (
                     <motion.div key="timer" {...pageVariants} className="flex flex-col min-h-screen pb-24 relative -mx-4 sm:mx-0">
-                        {/* Sticky Timer Header */}
-                        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-4 shadow-sm mb-6 px-4">
-                            <div className="flex items-center justify-between max-w-2xl mx-auto">
-                                <div className="space-y-1 w-full flex items-center justify-between sm:block">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 w-full">
-                                        <div className="flex items-center gap-2 text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0">
-                                            <Timer className={cn("h-3.5 w-3.5 text-primary", !isPaused && "animate-pulse")} />
-                                            {isPaused ? "Paused" : "Focusing"}
-                                        </div>
-                                        <p className="text-xl sm:text-2xl font-mono font-bold tracking-tight tabular-nums transition-colors mt-0.5 sm:mt-0 grow">
-                                            {formatElapsed(elapsed)}
-                                        </p>
-                                        <div className="flex gap-2 shrink-0 self-end sm:self-auto">
+                        {/* Animatable Timer Block */}
+                        <motion.div
+                            layout
+                            className={cn(
+                                "z-50 transition-all duration-700 w-full mb-6",
+                                !showQuiz
+                                    ? "flex flex-col items-center justify-center flex-1 my-auto pt-24"
+                                    : "sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-4 shadow-sm px-4"
+                            )}
+                        >
+                            <div className={cn("mx-auto flex transition-all duration-700", !showQuiz ? "flex-col items-center space-y-4" : "items-center justify-between w-full max-w-2xl")}>
+                                <motion.div layout className={cn("flex items-center gap-2 text-muted-foreground", !showQuiz ? "text-sm font-medium" : "text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0")}>
+                                    <Timer className={cn("text-primary", !isPaused && "animate-pulse", !showQuiz ? "h-5 w-5" : "h-3.5 w-3.5")} />
+                                    {isPaused ? "Paused" : "Focusing"}
+                                </motion.div>
+
+                                <motion.div layout className={cn("font-mono font-bold tracking-tight tabular-nums transition-all duration-700", !showQuiz ? "text-8xl mt-2" : "text-xl sm:text-2xl mt-0.5 sm:mt-0 grow", showQuiz && "ml-4")}>
+                                    {formatElapsed(elapsed)}
+                                </motion.div>
+
+                                {showQuiz && (
+                                    <motion.div layout className="flex gap-2 shrink-0 self-end sm:self-auto">
+                                        {isPaused ? (
+                                            <Button size="sm" variant="outline" onClick={handleResume} className="gap-2">
+                                                <Play className="h-4 w-4" />
+                                                <span className="hidden sm:inline">Resume</span>
+                                            </Button>
+                                        ) : (
+                                            <Button size="sm" variant="outline" onClick={handlePause} className="gap-2">
+                                                <Pause className="h-4 w-4" />
+                                                <span className="hidden sm:inline">Pause</span>
+                                            </Button>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </div>
+
+                            {/* Focus Phase Controls */}
+                            {!showQuiz && (
+                                <motion.div layout className="mt-12 flex flex-col gap-3 w-full max-w-xs mx-auto text-center relative z-20">
+                                    {focusPhase === "running" ? (
+                                        <>
+                                            <h2 className="text-base font-medium text-foreground/70 mb-4">{lecture.title}</h2>
                                             {isPaused ? (
-                                                <Button size="sm" variant="outline" onClick={handleResume} className="gap-2">
-                                                    <Play className="h-4 w-4" />
-                                                    <span className="hidden sm:inline">Resume</span>
+                                                <Button size="lg" onClick={handleResume} className="w-full py-6 font-semibold gap-2 shadow-lg shadow-primary/20">
+                                                    <Play className="h-5 w-5" /> Resume Session
                                                 </Button>
                                             ) : (
-                                                <Button size="sm" variant="outline" onClick={handlePause} className="gap-2">
-                                                    <Pause className="h-4 w-4" />
-                                                    <span className="hidden sm:inline">Pause</span>
+                                                <Button size="lg" variant="outline" onClick={handlePause} className="w-full py-6 font-semibold gap-2 border-primary/20 hover:bg-primary/5">
+                                                    <Pause className="h-5 w-5" /> Pause Session
                                                 </Button>
                                             )}
-                                            <Button size="sm" variant="destructive" onClick={handleStopSession} className="gap-1.5 shadow-sm">
-                                                <Square className="h-3.5 w-3.5 fill-current" />
-                                                End <span className="hidden sm:inline">& Save</span>
+                                            <Button size="lg" variant="destructive" onClick={() => setFocusPhase("choosing")} className="w-full py-6 font-semibold gap-2 shadow-sm">
+                                                <Square className="h-4 w-4 fill-current" /> End Focus
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                                            <p className="text-sm text-foreground font-semibold mb-1">Time is still ticking! ⏱️</p>
+                                            <p className="text-xs text-muted-foreground mb-4">Would you like to review with a quiz or just wrap up?</p>
+                                            {quiz.length > 0 && (
+                                                <Button size="lg" onClick={() => setShowQuiz(true)} className="w-full py-6 font-bold shadow-lg shadow-primary/20 gap-2">
+                                                    <BookOpen className="h-5 w-5" />
+                                                    Take Active Quiz
+                                                </Button>
+                                            )}
+                                            <Button size="lg" variant="outline" onClick={handleSaveWithoutQuiz} className="w-full py-6 font-semibold gap-2 border-primary/20 hover:bg-green-500/5 hover:text-green-600 dark:hover:text-green-400">
+                                                <CheckCircle2 className="h-4 w-4" />
+                                                Save Session & Dashboard
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setFocusPhase("running")} className="w-full mt-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+                                                Nevermind, back to focus
                                             </Button>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </motion.div>
 
                         {/* Integrated Quiz Content */}
                         <div className="max-w-2xl mx-auto w-full px-4 sm:px-0 flex-1">
-                            {quiz.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center text-center mt-12 space-y-4">
-                                    <p className="text-muted-foreground">No quiz questions available for this lecture.</p>
-                                </div>
-                            ) : (
-                                <>
-                                    {quizPhase === "quiz" && q && (
-                                        <div className="space-y-4 animate-in fade-in duration-500">
-                                            {/* Header */}
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-1 space-y-1">
-                                                    <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                                                        <span>QUESTION {currentIdx + 1} OF {quiz.length}</span>
-                                                    </div>
-                                                    <Progress value={progress} className="h-1.5" />
-                                                </div>
+                            {showQuiz && q && (
+                                <div className="space-y-4 animate-in fade-in duration-500">
+                                    {/* Header */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                                                <span>QUESTION {currentIdx + 1} OF {quiz.length}</span>
                                             </div>
+                                            <Progress value={progress} className="h-1.5" />
+                                        </div>
+                                    </div>
 
-                                            {/* Question Card */}
-                                            <Card className="border-none shadow-sm bg-card/50">
-                                                <CardHeader className="pb-3">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <Badge variant={TYPE_BADGE[q.type].variant} className="shrink-0 text-[10px]">
-                                                            {TYPE_BADGE[q.type].label}
-                                                        </Badge>
-                                                    </div>
-                                                    <CardTitle className="text-lg font-medium leading-relaxed mt-2">
-                                                        {q.question}
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="space-y-2">
-                                                    {q.options.map((opt, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => toggleOption(i)}
-                                                            disabled={submitted}
-                                                            className={cn(
-                                                                "w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border text-sm transition-all duration-150",
-                                                                getOptionStyle(i),
-                                                                !submitted && "cursor-pointer"
-                                                            )}
-                                                        >
-                                                            <span className="font-mono text-[11px] opacity-60 shrink-0 mt-0.5">
-                                                                {String.fromCharCode(65 + i)}.
-                                                            </span>
-                                                            <span className="leading-relaxed">{opt}</span>
-                                                            {submitted && q.correctAnswers.includes(i) && (
-                                                                <CheckCircle2 className="h-4 w-4 ml-auto shrink-0 text-green-500 mt-0.5" />
-                                                            )}
-                                                            {submitted && selected.has(i) && !q.correctAnswers.includes(i) && (
-                                                                <XCircle className="h-4 w-4 ml-auto shrink-0 text-red-400 mt-0.5" />
-                                                            )}
-                                                        </button>
-                                                    ))}
-                                                </CardContent>
-                                            </Card>
-
-                                            {/* Explanation */}
-                                            {submitted && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 8 }}
-                                                    animate={{ opacity: 1, y: 0 }}
+                                    {/* Question Card */}
+                                    <Card className="border-none shadow-sm bg-card/50">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <Badge variant={TYPE_BADGE[q.type].variant} className="shrink-0 text-[10px]">
+                                                    {TYPE_BADGE[q.type].label}
+                                                </Badge>
+                                            </div>
+                                            <CardTitle className="text-lg font-medium leading-relaxed mt-2">
+                                                {q.question}
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {q.options.map((opt, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => toggleOption(i)}
+                                                    disabled={submitted}
                                                     className={cn(
-                                                        "rounded-lg border px-4 py-3 text-sm leading-relaxed",
-                                                        answers[answers.length - 1]?.correct
-                                                            ? "border-green-400/40 bg-green-500/5 text-green-700 dark:text-green-400/90"
-                                                            : "border-red-400/40 bg-red-500/5 text-red-700 dark:text-red-400/90"
+                                                        "w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border text-sm transition-all duration-150",
+                                                        getOptionStyle(i),
+                                                        !submitted && "cursor-pointer"
                                                     )}
                                                 >
-                                                    <p className="font-semibold mb-1">
-                                                        {answers[answers.length - 1]?.correct ? "✓ Correct!" : "✗ Not quite."}
-                                                    </p>
-                                                    <p className="text-foreground/80">{q.explanation}</p>
-                                                </motion.div>
+                                                    <span className="font-mono text-[11px] opacity-60 shrink-0 mt-0.5">
+                                                        {String.fromCharCode(65 + i)}.
+                                                    </span>
+                                                    <span className="leading-relaxed">{opt}</span>
+                                                    {submitted && q.correctAnswers.includes(i) && (
+                                                        <CheckCircle2 className="h-4 w-4 ml-auto shrink-0 text-green-500 mt-0.5" />
+                                                    )}
+                                                    {submitted && selected.has(i) && !q.correctAnswers.includes(i) && (
+                                                        <XCircle className="h-4 w-4 ml-auto shrink-0 text-red-400 mt-0.5" />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Explanation */}
+                                    {submitted && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className={cn(
+                                                "rounded-lg border px-4 py-3 text-sm leading-relaxed",
+                                                answers[answers.length - 1]?.correct
+                                                    ? "border-green-400/40 bg-green-500/5 text-green-700 dark:text-green-400/90"
+                                                    : "border-red-400/40 bg-red-500/5 text-red-700 dark:text-red-400/90"
                                             )}
-
-                                            {/* Action Buttons */}
-                                            <div className="flex gap-3 pt-2">
-                                                {!submitted ? (
-                                                    <Button
-                                                        onClick={handleSubmitQuiz}
-                                                        disabled={selected.size === 0}
-                                                        className="flex-1 py-6 font-semibold shadow-md"
-                                                    >
-                                                        Submit Answer
-                                                    </Button>
-                                                ) : (
-                                                    <Button
-                                                        onClick={handleNextQuiz}
-                                                        className="flex-1 py-6 font-semibold gap-2 shadow-md hover:translate-x-1 transition-transform"
-                                                    >
-                                                        {isLastQuestion ? "See Quiz Results" : "Next Question"}
-                                                        <ChevronRight className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
+                                        >
+                                            <p className="font-semibold mb-1">
+                                                {answers[answers.length - 1]?.correct ? "✓ Correct!" : "✗ Not quite."}
+                                            </p>
+                                            <p className="text-foreground/80">{q.explanation}</p>
+                                        </motion.div>
                                     )}
 
-                                    {quizPhase === "results" && (
-                                        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
-                                            {/* Score Card */}
-                                            <Card className="border-primary/20 shadow-lg bg-primary/5 text-center overflow-hidden relative">
-                                                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
-                                                <CardContent className="pt-8 pb-6 space-y-4 relative z-10">
-                                                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-background shadow-sm border">
-                                                        <Trophy className="h-10 w-10 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-5xl font-bold tabular-nums text-foreground">{scorePercent}%</p>
-                                                        <p className="text-sm font-medium text-muted-foreground mt-1">
-                                                            {correctCount} of {quiz.length} correct
-                                                        </p>
-                                                    </div>
-                                                    <p className="text-sm font-medium">
-                                                        {scorePercent >= 80
-                                                            ? "Excellent work! 🎉 You've mastered this topic."
-                                                            : scorePercent >= 60
-                                                                ? "Good effort! Review the explanations to solidify your knowledge."
-                                                                : "Keep studying — you've got this. Review and retry!"}
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-
-                                            <div className="flex flex-col gap-3 pt-2">
-                                                <Button onClick={handleStopSession} size="lg" className="w-full gap-2 font-bold shadow-lg shadow-primary/20">
-                                                    <CheckCircle2 className="h-5 w-5" />
-                                                    Complete Session & Save Time
-                                                </Button>
-                                                <Button onClick={handleRestartQuiz} variant="outline" className="w-full gap-2 font-medium">
-                                                    <RotateCcw className="h-4 w-4" />
-                                                    Retry Quiz Selection
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-3 pt-2">
+                                        {!submitted ? (
+                                            <Button
+                                                onClick={handleSubmitQuiz}
+                                                disabled={selected.size === 0}
+                                                className="flex-1 py-6 font-semibold shadow-md"
+                                            >
+                                                Submit Answer
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                onClick={handleNextQuiz}
+                                                className="flex-1 py-6 font-semibold gap-2 shadow-md hover:translate-x-1 transition-transform"
+                                            >
+                                                {isLastQuestion ? "See Quiz Results" : "Next Question"}
+                                                <ChevronRight className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </motion.div>
@@ -505,7 +520,7 @@ export default function LecturePage() {
                             </p>
                         </div>
 
-                        {quiz.length > 0 && (
+                        {!skippedQuiz && quiz.length > 0 && (
                             <Card className="w-full max-w-sm mx-auto shadow-sm border-dashed bg-muted/20">
                                 <CardContent className="p-4 flex items-center justify-between">
                                     <span className="text-sm font-semibold text-muted-foreground">Quiz Score</span>
@@ -530,6 +545,6 @@ export default function LecturePage() {
                 )}
 
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
