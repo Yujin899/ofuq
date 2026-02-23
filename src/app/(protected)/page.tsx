@@ -258,6 +258,10 @@ export default function DashboardPage() {
                 open={createModalOpen}
                 onOpenChange={setCreateModalOpen}
             />
+            <JoinWorkspaceModal
+                open={joinModalOpen}
+                onOpenChange={setJoinModalOpen}
+            />
         </div>
     );
 }
