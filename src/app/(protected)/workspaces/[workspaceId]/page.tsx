@@ -11,7 +11,8 @@ import { SubjectTimeChart, TimePerSubjectDataPoint } from "@/components/dashboar
 import { QuizStatsChart, QuizStatDataPoint } from "@/components/dashboard/quiz-stats-chart";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Share2 } from "lucide-react";
+import { ShareWorkspaceDialog } from "@/components/workspaces/share-workspace-dialog";
 
 interface SessionDoc {
     subjectId: string;
@@ -32,6 +33,7 @@ export default function WorkspacePage() {
     const [sessions, setSessions] = useState<SessionDoc[]>([]);
     const [subjectNames, setSubjectNames] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
+    const [isShareOpen, setIsShareOpen] = useState(false);
 
     useEffect(() => {
         if (workspace) setActiveWorkspace(workspace);
@@ -108,7 +110,24 @@ export default function WorkspacePage() {
                         Analytics and overview for this workspace.
                     </p>
                 </div>
+                {workspace.role === "owner" && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsShareOpen(true)}
+                        className="flex items-center gap-2"
+                    >
+                        <Share2 className="h-4 w-4" />
+                        <span>Share</span>
+                    </Button>
+                )}
             </div>
+
+            <ShareWorkspaceDialog
+                workspaceId={workspaceId}
+                open={isShareOpen}
+                onOpenChange={setIsShareOpen}
+            />
 
             {loading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

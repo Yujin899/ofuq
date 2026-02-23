@@ -13,7 +13,8 @@ import {
     ChevronUp,
     BookOpen,
     PenLine,
-    ShieldCheck
+    ShieldCheck,
+    Link2
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
@@ -21,6 +22,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { CreateWorkspaceModal } from "../workspaces/create-workspace-modal";
+import { JoinWorkspaceModal } from "../workspaces/join-workspace-modal";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
     Collapsible,
@@ -47,6 +49,7 @@ export function Sidebar() {
     const { workspaces, activeWorkspace } = useWorkspace();
     const pathname = usePathname();
     const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [joinModalOpen, setJoinModalOpen] = useState(false);
     const [openWorkspaces, setOpenWorkspaces] = useState<Record<string, boolean>>({});
 
     const toggleWorkspace = (wsId: string) => {
@@ -97,15 +100,28 @@ export function Sidebar() {
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
                             Your Workspaces
                         </h3>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-primary hover:bg-primary/5"
-                            onClick={() => setCreateModalOpen(true)}
-                        >
-                            <Plus className="h-4 w-4" />
-                            <span className="sr-only">New Workspace</span>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-primary hover:bg-primary/5"
+                                onClick={() => setJoinModalOpen(true)}
+                                title="Join Workspace"
+                            >
+                                <Link2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">Join Workspace</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-primary hover:bg-primary/5"
+                                onClick={() => setCreateModalOpen(true)}
+                                title="New Workspace"
+                            >
+                                <Plus className="h-4 w-4" />
+                                <span className="sr-only">New Workspace</span>
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="space-y-1">
@@ -223,6 +239,10 @@ export function Sidebar() {
             <CreateWorkspaceModal
                 open={createModalOpen}
                 onOpenChange={setCreateModalOpen}
+            />
+            <JoinWorkspaceModal
+                open={joinModalOpen}
+                onOpenChange={setJoinModalOpen}
             />
         </aside>
     );

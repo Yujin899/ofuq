@@ -5,6 +5,8 @@ export interface Workspace {
     ownerId: string;             // Firebase Auth uid of the owner
     name: string;                // Display name, 1–50 characters
     createdAt: Timestamp;        // Firestore server timestamp
+    memberIds: string[];         // UIDs of users who joined as read-only members
+    role?: 'owner' | 'member';   // Derived role for the current user
 }
 
 export interface CreateWorkspaceInput {

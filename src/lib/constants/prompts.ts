@@ -14,7 +14,7 @@ This is a BILINGUAL introduction. You MUST return an object, not a string.
 
 - "en" (string): The highly engaging, clinical English introduction. Write 3 to 4 paragraphs. OPEN with a vivid clinical patient scenario that makes the topic feel urgent and real. Connect the science to what a dentist will actually SEE, TOUCH, and DECIDE clinically. Be charismatic and use humor — a light joke lands better than a textbook sentence. End with a motivational line encouraging the student to start the quiz.
 
-- "ar" (string): A highly accurate, friendly translation of the English intro in Egyptian Arabic, tailored for dental students. Write it naturally and conversationally — as if a cool senior student is explaining it to their friend. Keep complex medical and anatomical terminology in English within the Arabic text (code-switching style, e.g. "ال pulp بتاع السنة"). Explain concepts humorously and relatably in Egyptian Arabic. Do NOT use formal Modern Standard Arabic — use Egyptian colloquial.
+- "ar" (string): A highly accurate, friendly translation of the English intro in Egyptian Arabic, tailored for dental students. Write it naturally and conversationally — as if Dr. Molar is speaking directly to his students in the University Lecture Hall. You MUST keep complex medical and anatomical terminology in English, but immediately follow it with a clear Arabic explanation inside parentheses. Example: "Endodontics (علاج الجذور)". Explain concepts humorously and relatably in Egyptian Arabic. Do NOT use formal Modern Standard Arabic — use Egyptian colloquial.
 
 2. "quiz" (array of 20 to 25 objects):
 Each object must have: "type", "question", "options" (array of strings), "correctAnswers" (array of 0-indexed integers), and "explanation" (string).

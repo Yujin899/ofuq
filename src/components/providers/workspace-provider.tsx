@@ -16,6 +16,7 @@ import {
     Timestamp,
     writeBatch,
     doc,
+    or,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/use-auth";
@@ -47,17 +48,24 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         const q = query(
             collection(db, "workspaces"),
-            where("ownerId", "==", user.uid)
+            or(
+                where("ownerId", "==", user.uid),
+                where("memberIds", "array-contains", user.uid)
+            )
         );
 
         const unsubscribe = onSnapshot(
             q,
             (snapshot) => {
                 const ws: Workspace[] = snapshot.docs
-                    .map((doc) => ({
-                        id: doc.id,
-                        ...doc.data(),
-                    })) as Workspace[];
+                    .map((doc) => {
+                        const data = doc.data();
+                        return {
+                            id: doc.id,
+                            ...data,
+                            role: data.ownerId === user.uid ? 'owner' : 'member'
+                        };
+                    }) as Workspace[];
 
                 // Sort in-memory to avoid Firebase composite index requirement
                 ws.sort((a, b) => {
@@ -105,6 +113,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 batch.set(newWorkspaceRef, {
                     name: input.name,
                     ownerId: user.uid,
+                    memberIds: [],
                     createdAt: serverTimestamp(),
                 });
 

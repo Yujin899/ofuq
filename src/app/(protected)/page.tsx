@@ -9,20 +9,105 @@ import {
     ChevronRight,
     Clock,
     Flame,
-    BookOpen
+    BookOpen,
+    Link2
 } from "lucide-react";
 import { CreateWorkspaceModal } from "@/components/workspaces/create-workspace-modal";
-import { useState } from "react";
+import { JoinWorkspaceModal } from "@/components/workspaces/join-workspace-modal";
+import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function DashboardPage() {
     const { user } = useAuth();
     const { workspaces, loading } = useWorkspace();
     const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [joinModalOpen, setJoinModalOpen] = useState(false);
 
-    if (loading) {
+    const [stats, setStats] = useState({
+        hoursStudied: 0,
+        streak: 0,
+        totalSubjects: 0,
+    });
+    const [workspaceStats, setWorkspaceStats] = useState<Record<string, { lastActive: number, subjects: number, sessions: number }>>({});
+    const [statsLoading, setStatsLoading] = useState(true);
+
+    useEffect(() => {
+        if (workspaces.length === 0) {
+            setStats({ hoursStudied: 0, streak: 0, totalSubjects: 0 });
+            setWorkspaceStats({});
+            setStatsLoading(false);
+            return;
+        }
+
+        const fetchGlobalStats = async () => {
+            setStatsLoading(true);
+            let totalMins = 0;
+            const allSessionDates = new Set<string>();
+            let subjectsCount = 0;
+            const wsStats: Record<string, { lastActive: number; subjects: number; sessions: number }> = {};
+
+            await Promise.all(workspaces.map(async (ws) => {
+                try {
+                    const [sessionsSnap, subjectsSnap] = await Promise.all([
+                        getDocs(collection(db, "workspaces", ws.id, "sessions")),
+                        getDocs(collection(db, "workspaces", ws.id, "subjects")),
+                    ]);
+
+                    const wsDates: string[] = [];
+                    sessionsSnap.docs.forEach(doc => {
+                        const data = doc.data();
+                        totalMins += (data.durationMinutes || 0);
+                        if (data.date) {
+                            allSessionDates.add(data.date);
+                            wsDates.push(data.date);
+                        }
+                    });
+
+                    const subCount = subjectsSnap.docs.length;
+                    subjectsCount += subCount;
+
+                    wsDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+                    wsStats[ws.id] = {
+                        lastActive: wsDates.length > 0 ? new Date(wsDates[0]).getTime() : (ws.createdAt?.toMillis() || Date.now()),
+                        subjects: subCount,
+                        sessions: sessionsSnap.docs.length
+                    };
+                } catch (e) {
+                    console.error("Error fetching stats for ws", ws.id, e);
+                }
+            }));
+
+            // Calculate streak
+            let currentStreak = 0;
+            for (let i = 0; i < 365; i++) {
+                const checkDateStr = new Date(Date.now() - i * 86400000).toISOString().split("T")[0];
+                if (allSessionDates.has(checkDateStr)) {
+                    currentStreak++;
+                } else if (i === 0) {
+                    continue; // Missing today doesn't break the streak (yet)
+                } else {
+                    break;
+                }
+            }
+
+            setStats({
+                hoursStudied: Math.round((totalMins / 60) * 10) / 10,
+                streak: currentStreak,
+                totalSubjects: subjectsCount,
+            });
+            setWorkspaceStats(wsStats);
+            setStatsLoading(false);
+        };
+
+        fetchGlobalStats();
+    }, [workspaces]);
+
+    if (loading || statsLoading) {
         return (
             <div className="space-y-6">
                 <div className="space-y-2">
@@ -49,16 +134,26 @@ export default function DashboardPage() {
                         Welcome to Ofuq{user?.displayName ? `, ${user.displayName}` : ""}
                     </h2>
                     <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                        Your workspace is where your learning journey begins. Create one to start organizing your subjects.
+                        Your workspace is where your learning journey begins. Create one to start organizing your subjects, or join an existing workspace.
                     </p>
                 </div>
-                <Button size="lg" onClick={() => setCreateModalOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
-                    <Plus className="h-5 w-5" />
-                    Create Your First Workspace
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md">
+                    <Button size="lg" onClick={() => setCreateModalOpen(true)} className="gap-2 shadow-lg shadow-primary/20 w-full sm:w-auto">
+                        <Plus className="h-5 w-5" />
+                        Create Workspace
+                    </Button>
+                    <Button size="lg" variant="outline" onClick={() => setJoinModalOpen(true)} className="gap-2 shadow-sm w-full sm:w-auto">
+                        <Link2 className="h-5 w-5" />
+                        Join Workspace
+                    </Button>
+                </div>
                 <CreateWorkspaceModal
                     open={createModalOpen}
                     onOpenChange={setCreateModalOpen}
+                />
+                <JoinWorkspaceModal
+                    open={joinModalOpen}
+                    onOpenChange={setJoinModalOpen}
                 />
             </div>
         );
@@ -86,7 +181,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Hours Studied</p>
-                                <p className="text-2xl font-bold font-mono">24.5h</p>
+                                <p className="text-2xl font-bold font-mono">{stats.hoursStudied}h</p>
                             </div>
                         </div>
                     </CardContent>
@@ -99,7 +194,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Current Streak</p>
-                                <p className="text-2xl font-bold font-mono">12 Days</p>
+                                <p className="text-2xl font-bold font-mono">{stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -112,7 +207,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Total Subjects</p>
-                                <p className="text-2xl font-bold font-mono">{workspaces.length * 6}</p>
+                                <p className="text-2xl font-bold font-mono">{stats.totalSubjects}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -121,12 +216,18 @@ export default function DashboardPage() {
 
             {/* Workspaces Grid */}
             <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <h3 className="text-lg font-semibold">Your Workspaces</h3>
-                    <Button variant="outline" size="sm" onClick={() => setCreateModalOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        New Workspace
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setJoinModalOpen(true)} className="gap-2">
+                            <Link2 className="h-4 w-4" />
+                            Join
+                        </Button>
+                        <Button size="sm" onClick={() => setCreateModalOpen(true)} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            New Workspace
+                        </Button>
+                    </div>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {workspaces.map((workspace) => (
@@ -140,13 +241,11 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-xs text-muted-foreground">
-                                        Last active: {new Date(workspace.createdAt?.toMillis()).toLocaleDateString()}
+                                        Last active: {new Date(workspaceStats[workspace.id]?.lastActive || workspace.createdAt?.toMillis() || Date.now()).toLocaleDateString()}
                                     </p>
-                                    <div className="mt-4 flex items-center gap-2">
-                                        <div className="h-1.5 flex-1 rounded-full bg-accent">
-                                            <div className="h-full w-2/3 rounded-full bg-primary" />
-                                        </div>
-                                        <span className="text-[10px] font-medium text-muted-foreground">67%</span>
+                                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>{workspaceStats[workspace.id]?.subjects || 0} subjects</span>
+                                        <span>{workspaceStats[workspace.id]?.sessions || 0} sessions</span>
                                     </div>
                                 </CardContent>
                             </Card>

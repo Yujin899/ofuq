@@ -142,19 +142,21 @@ export default function SubjectsPage() {
                     </p>
                 </div>
 
-                <div className="flex w-full max-w-sm items-center space-x-2">
-                    <Input
-                        placeholder="e.g. Calculus 101"
-                        value={newSubjectName}
-                        onChange={(e) => setNewSubjectName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleAddSubject();
-                        }}
-                    />
-                    <Button onClick={handleAddSubject} disabled={isAdding || !newSubjectName.trim()}>
-                        {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
-                    </Button>
-                </div>
+                {activeWorkspace?.role === "owner" && (
+                    <div className="flex w-full max-w-sm items-center space-x-2">
+                        <Input
+                            placeholder="e.g. Calculus 101"
+                            value={newSubjectName}
+                            onChange={(e) => setNewSubjectName(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddSubject();
+                            }}
+                        />
+                        <Button onClick={handleAddSubject} disabled={isAdding || !newSubjectName.trim()}>
+                            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     }
@@ -169,21 +171,23 @@ export default function SubjectsPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Input
-                        placeholder="New subject name..."
-                        value={newSubjectName}
-                        onChange={(e) => setNewSubjectName(e.target.value)}
-                        className="w-full sm:w-[200px]"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleAddSubject();
-                        }}
-                    />
-                    <Button onClick={handleAddSubject} disabled={isAdding || !newSubjectName.trim()} size="sm">
-                        {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                        Add
-                    </Button>
-                </div>
+                {activeWorkspace?.role === "owner" && (
+                    <div className="flex items-center gap-2">
+                        <Input
+                            placeholder="New subject name..."
+                            value={newSubjectName}
+                            onChange={(e) => setNewSubjectName(e.target.value)}
+                            className="w-full sm:w-[200px]"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddSubject();
+                            }}
+                        />
+                        <Button onClick={handleAddSubject} disabled={isAdding || !newSubjectName.trim()} size="sm">
+                            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                            Add
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <div className="grid gap-8">
@@ -194,15 +198,17 @@ export default function SubjectsPage() {
                                 <BookOpen className="h-5 w-5 text-primary" />
                                 {subject.name}
                             </h3>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAddLecture(subject.id)}
-                                className="gap-2 h-8"
-                            >
-                                <Plus className="h-4 w-4" />
-                                Add Lecture
-                            </Button>
+                            {activeWorkspace?.role === "owner" && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleAddLecture(subject.id)}
+                                    className="gap-2 h-8"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Lecture
+                                </Button>
+                            )}
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -237,7 +243,7 @@ export default function SubjectsPage() {
                                 </Link>
                             ))}
 
-                            {subject.lectures.length === 0 && (
+                            {subject.lectures.length === 0 && activeWorkspace?.role === "owner" && (
                                 <div
                                     onClick={() => handleAddLecture(subject.id)}
                                     className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent/20 hover:border-accent transition-all min-h-[140px]"
