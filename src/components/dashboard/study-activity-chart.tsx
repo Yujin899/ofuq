@@ -90,18 +90,18 @@ export function StudyActivityChart({ sessions }: Props) {
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="space-y-1">
                         <CardTitle>Study Activity</CardTitle>
                         <CardDescription>{PERIOD_LABELS[period]}</CardDescription>
                     </div>
-                    <div className="flex rounded-md border overflow-hidden shrink-0">
+                    <div className="flex rounded-md border overflow-hidden shrink-0 w-full sm:w-auto">
                         {(["7D", "30D", "90D"] as Period[]).map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPeriod(p)}
                                 className={
-                                    `px-3 py-1.5 text-xs font-medium transition-colors ` +
+                                    `flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium transition-colors ` +
                                     (period === p
                                         ? "bg-primary text-primary-foreground"
                                         : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted")

@@ -103,7 +103,7 @@ export default function WorkspacePage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
-            <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-4">
                 <div className="space-y-1">
                     <h2 className="text-3xl font-bold tracking-tight">{workspace.name}</h2>
                     <p className="text-muted-foreground text-sm font-medium">
@@ -115,7 +115,7 @@ export default function WorkspacePage() {
                         variant="outline"
                         size="sm"
                         onClick={() => setIsShareOpen(true)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 w-full sm:w-auto"
                     >
                         <Share2 className="h-4 w-4" />
                         <span>Share</span>
@@ -139,10 +139,10 @@ export default function WorkspacePage() {
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {/* Row 1: Activity (wide) + Daily Goal (narrow) */}
-                    <div className="md:col-span-2">
+                    <div className="min-w-0 md:col-span-2">
                         <StudyActivityChart sessions={rawSessions} />
                     </div>
-                    <div className="md:col-span-1">
+                    <div className="min-w-0 md:col-span-1">
                         <DailyGoalChart
                             achievedPercent={achievedPercent}
                             goalMinutes={DAILY_GOAL_MINUTES}
@@ -150,10 +150,10 @@ export default function WorkspacePage() {
                         />
                     </div>
                     {/* Row 2: Time Allocation + Session Count side by side */}
-                    <div className="md:col-span-1">
+                    <div className="min-w-0 md:col-span-1">
                         <SubjectTimeChart data={subjectData} />
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="min-w-0 md:col-span-2">
                         <QuizStatsChart data={quizData} />
                     </div>
                 </div>
