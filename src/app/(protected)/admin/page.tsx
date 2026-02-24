@@ -4,10 +4,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Loader2, Plus, Pencil, Trash2, X, Check } from "lucide-react";
+import { ShieldCheck, Loader2, Plus, Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getCoreSubjects, createCoreSubject, updateCoreSubject, deleteCoreSubject, CoreSubject } from "@/lib/firebase/core-subjects";
+import { generateWeeklyTadabbur } from "@/app/(api)/actions/daily-insight-actions";
 import { Input } from "@/components/ui/input";
 
 export default function AdminPage() {
@@ -21,6 +22,8 @@ export default function AdminPage() {
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
+
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         if (!loading && user?.role === "admin") {
@@ -96,6 +99,23 @@ export default function AdminPage() {
         }
     };
 
+    const handleGenerateTadabbur = async () => {
+        setIsGenerating(true);
+        try {
+            const result = await generateWeeklyTadabbur();
+            if (result.success) {
+                toast.success(`Successfully generated ${result.count} new Daily Tadabbur insights!`);
+            } else {
+                toast.error(result.error || "Failed to generate insights.");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("An unexpected error occurred during generation.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-12">
             <div className="flex items-center gap-3">
@@ -109,6 +129,28 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-primary" />
+                            Daily Tadabbur
+                        </CardTitle>
+                        <CardDescription>
+                            Manually trigger the Gemini AI to batch-generate 7 new days of Islamic insights.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            onClick={handleGenerateTadabbur}
+                            disabled={isGenerating}
+                            className="w-full gap-2"
+                        >
+                            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            {isGenerating ? "Generating 7 Insights..." : "Generate 7 Insights"}
+                        </Button>
+                    </CardContent>
+                </Card>
+
                 <Card className="md:col-span-2 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0">
                         <div>

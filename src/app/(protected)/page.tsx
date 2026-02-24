@@ -20,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { DailyTadabburWidget } from "@/components/dashboard/daily-tadabbur-widget";
+import { Timestamp } from "firebase/firestore";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -170,6 +172,9 @@ export default function DashboardPage() {
                     Your learning hub. Select a workspace to continue your progress.
                 </p>
             </div>
+
+            {/* Daily Tadabbur Widget */}
+            <DailyTadabburWidget />
 
             {/* Quick Stats Grid */}
             <div className="grid gap-4 md:grid-cols-3">
