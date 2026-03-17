@@ -36,27 +36,21 @@ export default function JourneyDetailPage() {
     useEffect(() => {
         if (!workspaceId || !journeyId || !user) return;
 
-        // Fetch Journey Data
-        const fetchJourney = async () => {
-            try {
-                const docRef = doc(db, "workspaces", workspaceId, "journeys", journeyId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setJourney({ id: docSnap.id, ...docSnap.data() } as Journey);
-                } else {
-                    toast.error("Journey not found.");
-                    router.push(`/workspaces/${workspaceId}`);
-                }
-            } catch (error) {
-                console.error("Error fetching journey:", error);
-                toast.error("Failed to load journey.");
-            } finally {
-                setLoading(false);
+        // Live-sync Journey Data (so edits are reflected immediately)
+        const journeyDocRef = doc(db, "workspaces", workspaceId, "journeys", journeyId);
+        const unsubJourney = onSnapshot(journeyDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setJourney({ id: docSnap.id, ...docSnap.data() } as Journey);
+            } else {
+                toast.error("Journey not found.");
+                router.push(`/workspaces/${workspaceId}`);
             }
-        };
-
-        fetchJourney();
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching journey:", error);
+            toast.error("Failed to load journey.");
+            setLoading(false);
+        });
 
         // Listen for ALL Users' Progress in this Journey
         const progressCollectionRef = collection(db, "workspaces", workspaceId, "journeys", journeyId, "user_progress");
@@ -76,7 +70,10 @@ export default function JourneyDetailPage() {
             setIsJoined(joined);
         });
 
-        return () => unsubProgress();
+        return () => {
+            unsubJourney();
+            unsubProgress();
+        };
     }, [workspaceId, journeyId, user, router]);
 
     // Fetch User Profiles for participants
