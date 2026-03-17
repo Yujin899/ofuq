@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar } from "./sidebar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 
@@ -25,6 +25,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-64 p-0">
+                            <SheetHeader className="sr-only">
+                                <SheetTitle>Navigation Menu</SheetTitle>
+                                <SheetDescription>Access the application navigation</SheetDescription>
+                            </SheetHeader>
                             <Sidebar />
                         </SheetContent>
                     </Sheet>

@@ -122,7 +122,7 @@ export function Sidebar() {
 
                     <div className="space-y-1">
                         {workspaces.map((ws) => {
-                            const isOpen = openWorkspaces[ws.id];
+                            const isOpen = openWorkspaces[ws.id] || false;
                             const isActive = activeWorkspace?.id === ws.id;
 
                             return (
