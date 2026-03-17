@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Journey } from "@/types/journey";
 import { Tent, Check, Sparkles, Lock } from "lucide-react";
@@ -34,15 +35,27 @@ export function HorizonTrail({
   memberPresences = [],
 }: HorizonTrailProps) {
   const totalSteps = journey.steps.length;
+  const hasScrolled = useRef(false);
+
+  // Callback ref: fires when the current step element mounts in the DOM
+  const currentStepCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    if (node && !hasScrolled.current) {
+      hasScrolled.current = true;
+      // Delay to let stagger animations play out
+      setTimeout(() => {
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 800);
+    }
+  }, []);
 
   return (
-    <div className="relative w-full min-h-[600px] py-32 px-4 flex flex-col items-center bg-[radial-gradient(circle_at_50%_bottom,oklch(0.94_0.02_170/0.3),transparent_70%)] rounded-[3rem] overflow-hidden">
+    <div className="relative w-full max-h-[80vh] overflow-y-auto py-16 md:py-32 px-2 md:px-4 flex flex-col items-center bg-[radial-gradient(circle_at_50%_bottom,oklch(0.94_0.02_170/0.3),transparent_70%)] rounded-2xl md:rounded-[3rem] scroll-smooth">
       {/* The Climbing Path Line (Bottom to Top) */}
       <div className="absolute inset-0 pointer-events-none flex justify-center">
         <div className="w-1 h-full bg-primary/5 mask-[linear-gradient(to_top,black,transparent)]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl flex flex-col-reverse gap-32">
+      <div className="relative z-10 w-full max-w-2xl flex flex-col-reverse gap-16 md:gap-32">
         {journey.steps.map((step, index) => {
           const isCompleted = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
@@ -71,7 +84,7 @@ export function HorizonTrail({
                   minWidth: membersOnStep.length > 1 ? `${11 + (membersOnStep.length - 1) * 2.5}rem` : '11rem' 
                 }}
                 className={cn(
-                  "relative z-20 flex items-center justify-center rounded-3xl shadow-2xl transition-colors duration-700 h-24 border-b-8 active:scale-95 px-6 shrink-0",
+                  "relative z-20 flex items-center justify-center rounded-2xl md:rounded-3xl shadow-2xl transition-colors duration-700 h-16 md:h-24 border-b-4 md:border-b-8 active:scale-95 px-4 md:px-6 shrink-0",
                   isCompleted && "bg-primary text-primary-foreground border-primary/20",
                   isCurrent && "bg-accent text-accent-foreground border-accent/20 ring-8 ring-accent/20 animate-in fade-in zoom-in",
                   isUpcoming && "bg-secondary/30 border-primary/5 text-muted-foreground border-dashed border-2",
@@ -163,8 +176,9 @@ export function HorizonTrail({
 
               {/* Content Label */}
               <div className={cn(
-                "absolute top-1/2 -translate-y-1/2 whitespace-nowrap px-5 py-2.5 rounded-2xl bg-background/90 backdrop-blur-md border border-primary/10 shadow-2xl transition-all duration-300",
-                isLeft ? "left-full ml-6" : "right-full mr-6 text-right",
+                "px-4 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl bg-background/90 backdrop-blur-md border border-primary/10 shadow-2xl transition-all duration-300",
+                "relative mt-3 text-center md:mt-0 md:absolute md:top-1/2 md:-translate-y-1/2 md:whitespace-nowrap",
+                isLeft ? "md:left-full md:ml-6 md:text-left" : "md:right-full md:mr-6 md:text-right",
                 isUpcoming ? "opacity-40" : "opacity-100"
               )}>
                 <div className="flex items-center gap-2">
@@ -181,6 +195,7 @@ export function HorizonTrail({
           return (
             <motion.div
               key={step.id}
+              ref={isCurrent ? currentStepCallbackRef : undefined}
               initial={{ opacity: 0, scale: 0.8, y: 50 }}
               whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
@@ -191,7 +206,7 @@ export function HorizonTrail({
                 stiffness: 120,
               }}
               className={cn(
-                "relative flex items-center justify-center w-full",
+                "relative flex flex-col md:flex-row items-center justify-center w-full",
                 isLeft ? "md:justify-start md:pl-20" : "md:justify-end md:pr-20"
               )}
             >
