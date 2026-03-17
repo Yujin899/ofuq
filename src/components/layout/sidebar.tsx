@@ -4,19 +4,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
     LogOut,
-    Sun,
-    Moon,
     LayoutDashboard,
     Plus,
     Layers,
     ChevronDown,
     ChevronUp,
     BookOpen,
-    PenLine,
     ShieldCheck,
-    Link2
+    Link2,
+    Users
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -45,7 +42,6 @@ const MAIN_NAV = [
 
 export function Sidebar() {
     const { signOut, user } = useAuth();
-    const { theme, setTheme } = useTheme();
     const { workspaces, activeWorkspace } = useWorkspace();
     const pathname = usePathname();
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -158,33 +154,44 @@ export function Sidebar() {
                                             )}
                                         </Button>
                                     </CollapsibleTrigger>
-                                    <CollapsibleContent className="space-y-1 ml-4 border-l pl-2 animate-in slide-in-from-left-1 duration-200">
-                                        <Link
-                                            href={`/workspaces/${ws.id}`}
-                                            className={cn(
-                                                "flex items-center gap-3 rounded-md px-3 py-2 text-xs transition-all duration-200",
-                                                pathname === `/workspaces/${ws.id}`
-                                                    ? "text-primary font-bold"
-                                                    : "text-muted-foreground font-medium hover:bg-accent/40 hover:text-foreground"
-                                            )}
-                                        >
-                                            <LayoutDashboard className="h-3.5 w-3.5" />
-                                            Overview
-                                        </Link>
-                                        <Link
-                                            href={`/workspaces/${ws.id}/subjects`}
-                                            className={cn(
-                                                "flex items-center gap-3 rounded-md px-3 py-2 text-xs transition-all duration-200",
-                                                pathname === `/workspaces/${ws.id}/subjects`
-                                                    ? "text-primary font-bold"
-                                                    : "text-muted-foreground font-medium hover:bg-accent/40 hover:text-foreground"
-                                            )}
-                                        >
-                                            <BookOpen className="h-3.5 w-3.5" />
-                                            Subjects & Lectures
-                                        </Link>
-
-                                    </CollapsibleContent>
+                                        <CollapsibleContent className="space-y-1 ml-4 border-l pl-2 animate-in slide-in-from-left-1 duration-200">
+                                            <Link
+                                                href={`/workspaces/${ws.id}`}
+                                                className={cn(
+                                                    "flex items-center gap-3 rounded-md px-3 py-2 text-xs transition-all duration-200",
+                                                    pathname === `/workspaces/${ws.id}`
+                                                        ? "text-primary font-bold"
+                                                        : "text-muted-foreground font-medium hover:bg-accent/40 hover:text-foreground"
+                                                )}
+                                            >
+                                                <LayoutDashboard className="h-3.5 w-3.5" />
+                                                <span>Overview</span>
+                                            </Link>
+                                            <Link
+                                                href={`/workspaces/${ws.id}/subjects`}
+                                                className={cn(
+                                                    "flex items-center gap-3 rounded-md px-3 py-2 text-xs transition-all duration-200",
+                                                    pathname === `/workspaces/${ws.id}/subjects`
+                                                        ? "text-primary font-bold"
+                                                        : "text-muted-foreground font-medium hover:bg-accent/40 hover:text-foreground"
+                                                )}
+                                            >
+                                                <BookOpen className="h-3.5 w-3.5" />
+                                                <span>Subjects & Lectures</span>
+                                            </Link>
+                                            <Link
+                                                href={`/workspaces/${ws.id}/members`}
+                                                className={cn(
+                                                    "flex items-center gap-3 rounded-md px-3 py-2 text-xs transition-all duration-200",
+                                                    pathname === `/workspaces/${ws.id}/members`
+                                                        ? "text-primary font-bold"
+                                                        : "text-muted-foreground font-medium hover:bg-accent/40 hover:text-foreground"
+                                                )}
+                                            >
+                                                <Users className="h-3.5 w-3.5" />
+                                                <span>Community</span>
+                                            </Link>
+                                        </CollapsibleContent>
                                 </Collapsible>
                             );
                         })}
@@ -222,11 +229,6 @@ export function Sidebar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="center" side="top" sideOffset={8}>
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="gap-2 cursor-pointer">
-                            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                            <span>Toggle Theme</span>
-                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => signOut()} className="text-destructive focus:text-destructive gap-2 cursor-pointer">
                             <LogOut className="h-4 w-4" />

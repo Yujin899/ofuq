@@ -33,7 +33,7 @@ const PERIOD_LABELS: Record<Period, string> = {
 const PERIOD_DAYS: Record<Period, number> = { "7D": 7, "30D": 30, "90D": 90 };
 
 const chartConfig = {
-    minutes: { label: "Minutes", color: "#2563eb" },
+    minutes: { label: "Minutes", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 function toYMD(d: Date): string {
@@ -126,8 +126,8 @@ export function StudyActivityChart({ sessions }: Props) {
                         >
                             <defs>
                                 <linearGradient id="minutesGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/50" />
@@ -158,9 +158,9 @@ export function StudyActivityChart({ sessions }: Props) {
                                 dataKey="minutes"
                                 type="monotone"
                                 fill="url(#minutesGradient)"
-                                stroke="#2563eb"
+                                stroke="var(--color-chart-1)"
                                 strokeWidth={2}
-                                dot={{ fill: "#2563eb", strokeWidth: 0, r: 3 }}
+                                dot={{ fill: "var(--color-chart-1)", strokeWidth: 0, r: 3 }}
                                 activeDot={{ r: 5 }}
                                 isAnimationActive={true}
                                 baseValue={0}

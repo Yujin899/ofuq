@@ -20,7 +20,13 @@ export interface TimePerSubjectDataPoint {
     minutes: number;
 }
 
-const COLORS = ["#2563eb", "#60a5fa", "#34d399", "#f59e0b", "#a78bfa", "#f472b6"];
+const COLORS = [
+    "var(--color-chart-1)",
+    "var(--color-chart-2)",
+    "var(--color-chart-3)",
+    "var(--color-chart-4)",
+    "var(--color-chart-5)"
+];
 
 const chartConfig = {
     minutes: { label: "Minutes" },

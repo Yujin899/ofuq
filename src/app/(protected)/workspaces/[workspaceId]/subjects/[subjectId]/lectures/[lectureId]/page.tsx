@@ -1,8 +1,8 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Lecture, QuizQuestion } from "@/types/lecture";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ import {
     Square,
     ChevronRight,
     Trophy,
-    RotateCcw,
     XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -72,6 +71,10 @@ export default function LecturePage() {
     const [step, setStep] = useState<Step>("intro");
     const [showArabic, setShowArabic] = useState(false);
 
+    const searchParams = useSearchParams();
+    const journeyIdParam = searchParams.get("journeyId");
+    const stepIndexParam = searchParams.get("stepIndex");
+
     // Timer state
     const [elapsed, setElapsed] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -85,7 +88,6 @@ export default function LecturePage() {
     const [showQuiz, setShowQuiz] = useState(false);
 
     // Quiz state
-    const [quizPhase, setQuizPhase] = useState<Phase>("quiz");
     const [currentIdx, setCurrentIdx] = useState(0);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [submitted, setSubmitted] = useState(false);
@@ -94,6 +96,7 @@ export default function LecturePage() {
     // Completion state
     const [sessionSaved, setSessionSaved] = useState(false);
     const [finalElapsed, setFinalElapsed] = useState(0);
+    const [celebrate, setCelebrate] = useState(false);
 
     useEffect(() => {
         if (!workspaceId || !subjectId || !lectureId) return;
@@ -167,8 +170,11 @@ export default function LecturePage() {
         const saveSession = async () => {
             try {
                 const durationMinutes = Math.max(1, Math.round(finalElapsed / 60000));
+                const currentQuiz = lecture?.quiz || [];
+                const correctCount = answers.filter((a) => a.correct).length;
+                const scorePercent = currentQuiz.length > 0 ? Math.round((correctCount / currentQuiz.length) * 100) : 0;
 
-                const sessionData: any = {
+                const sessionData: Record<string, any> = {
                     subjectId,
                     lectureId,
                     userId: user?.uid,
@@ -177,22 +183,43 @@ export default function LecturePage() {
                     createdAt: serverTimestamp(),
                 };
 
-                const currentQuiz = lecture?.quiz || [];
                 if (!skippedQuiz && currentQuiz.length > 0) {
-                    const correctCount = answers.filter((a) => a.correct).length;
                     sessionData.quizScore = correctCount;
                     sessionData.totalQuestions = currentQuiz.length;
-                    sessionData.scorePercent = Math.round((correctCount / currentQuiz.length) * 100);
+                    sessionData.scorePercent = scorePercent;
                 }
 
                 await addDoc(collection(db, "workspaces", workspaceId, "sessions"), sessionData);
+
+                // Auto-Progression Logic
+                if (journeyIdParam && stepIndexParam && scorePercent >= 60 && user) {
+                    const stepIndex = parseInt(stepIndexParam);
+                    const progressRef = doc(db, "workspaces", workspaceId, "journeys", journeyIdParam, "user_progress", user.uid);
+                    
+                    const pSnap = await getDoc(progressRef);
+                    const currentProgress = pSnap.exists() ? pSnap.data().currentStepIndex || 0 : 0;
+
+                    // Only increment if we are completing our current leading edge
+                    if (stepIndex === currentProgress) {
+                        await setDoc(progressRef, {
+                            currentStepIndex: stepIndex + 1,
+                            lastUpdated: serverTimestamp(),
+                        }, { merge: true });
+                        setCelebrate(true);
+                        toast.success("Progress Saved! You've unlocked the next horizon! 🚀", {
+                            className: "rounded-2xl border-primary/10",
+                        });
+                    }
+                }
+
                 setSessionSaved(true);
-            } catch {
+            } catch (err) {
+                console.error("Save Error:", err);
                 toast.error("Could not save session. Please try again.");
             }
         };
         saveSession();
-    }, [step, sessionSaved, workspaceId, subjectId, lectureId, finalElapsed, user?.uid, skippedQuiz, lecture?.quiz, answers]);
+    }, [step, sessionSaved, workspaceId, subjectId, lectureId, finalElapsed, user, skippedQuiz, lecture?.quiz, answers, journeyIdParam, stepIndexParam]);
 
     // Quiz Helpers
     const quiz = lecture?.quiz || [];
@@ -230,14 +257,6 @@ export default function LecturePage() {
             setSelected(new Set());
             setSubmitted(false);
         }
-    };
-
-    const handleRestartQuiz = () => {
-        setCurrentIdx(0);
-        setSelected(new Set());
-        setSubmitted(false);
-        setAnswers([]);
-        setQuizPhase("quiz");
     };
 
     const correctCount = answers.filter((a) => a.correct).length;
@@ -521,12 +540,65 @@ export default function LecturePage() {
 
                 {/* ─────────── STEP 3: COMPLETION ─────────── */}
                 {step === "completion" && (
-                    <motion.div key="completion" {...pageVariants} className="flex flex-col items-center justify-center min-h-[75vh] space-y-8 text-center max-w-2xl mx-auto w-full px-4 sm:px-0">
-                        <div className="space-y-4">
-                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                    <motion.div key="completion" {...pageVariants} className="flex flex-col items-center justify-center min-h-[75vh] space-y-8 text-center max-w-2xl mx-auto w-full px-4 sm:px-0 relative">
+                        {/* Celebration Burst */}
+                        <AnimatePresence>
+                            {celebrate && (
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 pointer-events-none z-50 overflow-hidden"
+                                >
+                                    {[...Array(20)].map((_, i) => {
+                                        const angle = (i / 20) * Math.PI * 2;
+                                        const distance = 400 + Math.sin(i * 10) * 200;
+                                        return (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ 
+                                                    top: "50%", 
+                                                    left: "50%", 
+                                                    scale: 0,
+                                                    x: 0,
+                                                    y: 0
+                                                }}
+                                                animate={{ 
+                                                    scale: [0, 1, 0.5],
+                                                    x: Math.cos(angle) * distance,
+                                                    y: Math.sin(angle) * distance,
+                                                }}
+                                                transition={{ 
+                                                    duration: 2,
+                                                    ease: "easeOut",
+                                                    repeat: Infinity,
+                                                    repeatDelay: (i % 5) * 0.4
+                                                }}
+                                                className={cn(
+                                                    "absolute w-3 h-3 rounded-full shadow-lg",
+                                                    i % 3 === 0 ? "bg-primary" : i % 3 === 1 ? "bg-accent" : "bg-emerald-400"
+                                                )}
+                                            />
+                                        );
+                                    })}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div className="space-y-4 relative z-10">
+                            <motion.div 
+                                animate={celebrate ? { 
+                                    scale: [1, 1.2, 1],
+                                    rotate: [0, 10, -10, 0]
+                                } : {}}
+                                transition={{ duration: 0.5 }}
+                                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"
+                            >
                                 <CheckCircle2 className="h-10 w-10 text-primary" />
-                            </div>
-                            <h2 className="text-3xl font-bold tracking-tight">Session Complete!</h2>
+                            </motion.div>
+                            <h2 className="text-3xl font-bold tracking-tight">
+                                {celebrate ? "Horizon Unlocked! 🎯" : "Session Complete!"}
+                            </h2>
                             <p className="text-muted-foreground text-sm">
                                 You studied <strong className="text-foreground">{lecture.title}</strong> for
                             </p>
@@ -539,12 +611,15 @@ export default function LecturePage() {
                         </div>
 
                         {!skippedQuiz && quiz.length > 0 && (
-                            <Card className="w-full max-w-sm mx-auto shadow-sm border-dashed bg-muted/20">
+                            <Card className={cn(
+                                "w-full max-w-sm mx-auto shadow-sm border-dashed",
+                                celebrate ? "bg-primary/5 border-primary/20" : "bg-muted/20"
+                            )}>
                                 <CardContent className="p-4 flex items-center justify-between">
                                     <span className="text-sm font-semibold text-muted-foreground">Quiz Score</span>
                                     <div className="flex items-center gap-2">
-                                        <Trophy className="h-4 w-4 text-primary" />
-                                        <span className="font-bold">{scorePercent}%</span>
+                                        <Trophy className={cn("h-4 w-4", celebrate ? "text-primary animate-bounce" : "text-muted-foreground")} />
+                                        <span className={cn("font-bold", celebrate && "text-primary text-lg")}>{scorePercent}%</span>
                                     </div>
                                 </CardContent>
                             </Card>

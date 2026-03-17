@@ -18,10 +18,8 @@ import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, QueryDocumentSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { DailyTadabburWidget } from "@/components/dashboard/daily-tadabbur-widget";
-import { Timestamp } from "firebase/firestore";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -60,7 +58,7 @@ export default function DashboardPage() {
                     ]);
 
                     const wsDates: string[] = [];
-                    sessionsSnap.docs.forEach(doc => {
+                    sessionsSnap.docs.forEach((doc: QueryDocumentSnapshot) => {
                         const data = doc.data();
                         totalMins += (data.durationMinutes || 0);
                         if (data.date) {
@@ -173,8 +171,6 @@ export default function DashboardPage() {
                 </p>
             </div>
 
-            {/* Daily Tadabbur Widget */}
-            <DailyTadabburWidget />
 
             {/* Quick Stats Grid */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -191,10 +187,10 @@ export default function DashboardPage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-orange-500/5 border-orange-500/10">
+                <Card className="bg-secondary/20 border-secondary/30">
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600">
+                            <div className="p-2 rounded-lg bg-secondary/30 text-secondary-foreground">
                                 <Flame className="h-5 w-5" />
                             </div>
                             <div>
@@ -246,7 +242,7 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-xs text-muted-foreground">
-                                        Last active: {new Date(workspaceStats[workspace.id]?.lastActive || workspace.createdAt?.toMillis() || Date.now()).toLocaleDateString()}
+                                        Last active: {workspaceStats[workspace.id]?.lastActive ? new Date(workspaceStats[workspace.id].lastActive).toLocaleDateString() : (workspace.createdAt ? workspace.createdAt.toDate().toLocaleDateString() : 'N/A')}
                                     </p>
                                     <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                                         <span>{workspaceStats[workspace.id]?.subjects || 0} subjects</span>

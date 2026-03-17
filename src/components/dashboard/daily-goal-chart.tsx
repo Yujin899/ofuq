@@ -18,7 +18,7 @@ import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 const chartConfig = {
     value: { label: "Progress" },
-    achieved: { label: "Achieved", color: "#2563eb" },
+    achieved: { label: "Achieved", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 interface Props {
@@ -29,8 +29,8 @@ interface Props {
 
 export function DailyGoalChart({ achievedPercent, goalMinutes = 120, studiedMinutes }: Props) {
     const chartData = [
-        { name: "Achieved", value: achievedPercent, fill: "#2563eb" },
-        { name: "Remaining", value: 100 - achievedPercent, fill: "#e2e8f0" },
+        { name: "Achieved", value: achievedPercent, fill: "var(--color-chart-1)" },
+        { name: "Remaining", value: 100 - achievedPercent, fill: "hsl(var(--muted))" },
     ];
 
     return (

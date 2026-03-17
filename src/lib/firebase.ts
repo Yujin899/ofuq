@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "mock_key",
@@ -13,6 +14,12 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-export { app, auth, db };
+// Workaround for net::ERR_BLOCKED_BY_CLIENT (AdBlockers etc.) by forcing long polling
+const db = getApps().length === 0 
+    ? initializeFirestore(app, { experimentalForceLongPolling: true })
+    : getFirestore(app);
+
+const rtdb = getDatabase(app);
+
+export { app, auth, db, rtdb };

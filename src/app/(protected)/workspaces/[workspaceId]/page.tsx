@@ -14,6 +14,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Share2 } from "lucide-react";
 import { ShareWorkspaceDialog } from "@/components/workspaces/share-workspace-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { JourneysList } from "@/components/workspaces/journeys-list";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { JourneyBuilder } from "@/components/workspaces/journey-builder";
 
 interface SessionDoc {
     subjectId: string;
@@ -39,6 +48,7 @@ export default function WorkspacePage() {
     const [subjectNames, setSubjectNames] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [isJourneyBuilderOpen, setIsJourneyBuilderOpen] = useState(false);
 
     useEffect(() => {
         if (workspace) setActiveWorkspace(workspace);
@@ -141,6 +151,18 @@ export default function WorkspacePage() {
                 onOpenChange={setIsShareOpen}
             />
 
+            <Dialog open={isJourneyBuilderOpen} onOpenChange={setIsJourneyBuilderOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-none shadow-2xl bg-background/95 backdrop-blur">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Journey Builder</DialogTitle>
+                        <DialogDescription>
+                            Create or edit your study journey by adding lectures and reordering them.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <JourneyBuilder workspaceId={workspaceId} onClose={() => setIsJourneyBuilderOpen(false)} />
+                </DialogContent>
+            </Dialog>
+
             {loading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <div className="md:col-span-2"><Skeleton className="h-[340px] w-full rounded-xl" /></div>
@@ -150,6 +172,13 @@ export default function WorkspacePage() {
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Row 0: Journeys */}
+                    <div className="md:col-span-3">
+                        <JourneysList
+                            workspaceId={workspaceId}
+                            onCreateClick={() => setIsJourneyBuilderOpen(true)}
+                        />
+                    </div>
                     {/* Row 1: Activity (wide) + Daily Goal (narrow) */}
                     <div className="min-w-0 md:col-span-2">
                         <StudyActivityChart sessions={rawSessions} />

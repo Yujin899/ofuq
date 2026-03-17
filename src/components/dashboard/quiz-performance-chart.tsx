@@ -20,10 +20,16 @@ export interface QuizPerformanceDataPoint {
     score: number;
 }
 
-const COLORS = ["#2563eb", "#60a5fa", "#34d399", "#f59e0b", "#a78bfa"];
+const COLORS = [
+    "var(--color-chart-1)",
+    "var(--color-chart-2)",
+    "var(--color-chart-3)",
+    "var(--color-chart-4)",
+    "var(--color-chart-5)"
+];
 
 const chartConfig = {
-    score: { label: "Avg Score %", color: "#2563eb" },
+    score: { label: "Avg Score %", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 interface Props {

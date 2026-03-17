@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Amiri } from "next/font/google";
-import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -19,14 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${amiri.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+    <html lang="en">
+      <body className={`${inter.variable} ${amiri.variable} font-sans antialiased text-foreground bg-background`}>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

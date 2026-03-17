@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,11 +11,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export function UserNav() {
     const { user, signOut } = useAuth();
-    const { theme, setTheme } = useTheme();
 
     if (!user) return null;
 
@@ -52,17 +50,6 @@ export function UserNav() {
                         </p>
                     </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                >
-                    {theme === "dark" ? (
-                        <Sun className="mr-2 h-4 w-4" />
-                    ) : (
-                        <Moon className="mr-2 h-4 w-4" />
-                    )}
-                    <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut className="mr-2 h-4 w-4" />
