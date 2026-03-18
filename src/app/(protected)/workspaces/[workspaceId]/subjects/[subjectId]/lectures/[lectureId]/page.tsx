@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, FieldValue } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Lecture, QuizQuestion } from "@/types/lecture";
 import { Button } from "@/components/ui/button";
@@ -304,7 +304,11 @@ export default function LecturePage() {
         if (q.type === "multi") {
             setSelected((prev) => {
                 const next = new Set(prev);
-                next.has(idx) ? next.delete(idx) : next.add(idx);
+                if (next.has(idx)) {
+                    next.delete(idx);
+                } else {
+                    next.add(idx);
+                }
                 return next;
             });
         } else {
