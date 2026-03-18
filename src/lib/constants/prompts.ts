@@ -59,7 +59,7 @@ Here is the extracted content:
 
 You MUST output ONLY a single, raw, valid JSON object. No markdown. No intro text. No "Sure! Here's your JSON:". No trailing explanation. Just the raw JSON, starting with { and ending with }. A linter will parse your output directly, so a single extra character will break everything.
 
-The JSON must contain exactly these three top-level keys:
+The JSON must contain exactly these four top-level keys:
 
 1. "title" (string):
 A concise, professional lecture title — 3 to 8 words. Used as the lecture heading in the app. Think textbook chapter title. Example: "Pulp Biology and Endodontic Pathology".
@@ -73,7 +73,13 @@ This is a BILINGUAL introduction. You MUST return an object, not a string.
 - "ar" (string): A highly accurate, friendly translation of the English intro in Egyptian Arabic, tailored for dental students. Write it naturally and conversationally — as if Dr. Molar is speaking directly to his students in the University Lecture Hall. You MUST keep complex medical and anatomical terminology in English, but immediately follow it with a clear Arabic explanation inside parentheses. Example: "Endodontics (علاج الجذور)". Explain concepts humorously and relatably in Egyptian Arabic. Do NOT use formal Modern Standard Arabic — use natural Egyptian dialect.
   * CRITICAL ENDING: End the Arabic intro with this EXACT sentence, word for word: "دلوقتي يلا ذاكروا المحاضرة وحلوا الكويز، وتعالوا اقرأوا المقدمة دي تاني.. هتلاقوا نظرتكم اختلفت تماماً."
 
-3. "quiz" (array of 20 to 25 objects):
+3. "pre_quiz" (array of 2 to 3 objects):
+Designed to activate prior knowledge BEFORE studying. Must be answerable from the lecture material.
+Each object must have exactly these keys:
+- "question" (string): An open-ended question with no options.
+- "hint" (string): A one-sentence nudge if the student is completely stuck. Not the answer — just a direction.
+
+4. "quiz" (array of 20 to 25 objects):
 Each object must have exactly these keys: "type", "question", "options", "correctAnswers", and "explanation".
 
 - "type" (string): One of "single", "multi", or "case".

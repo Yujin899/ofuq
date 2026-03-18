@@ -16,6 +16,7 @@ export interface Lecture {
     subjectId: string;
     title: string;
     intro: { en: string; ar: string };
+    pre_quiz?: { question: string; hint: string }[];
     quiz: QuizQuestion[];
     createdAt: Timestamp;
 }
