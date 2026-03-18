@@ -35,8 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="ml-4 font-bold">Ofuq</div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
-                    <div className="mx-auto max-w-5xl h-full">
+                <main className="flex-1 overflow-hidden bg-background">
+                    <div className="mx-auto max-w-5xl h-full overflow-y-auto p-4 md:p-8">
                         {children}
                     </div>
                 </main>

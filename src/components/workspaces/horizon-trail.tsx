@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Journey } from "@/types/journey";
 import { Tent, Check, Sparkles, Lock } from "lucide-react";
@@ -28,6 +27,14 @@ interface HorizonTrailProps {
   memberPresences?: MemberPresence[];
 }
 
+// Layout constants
+const STEP_WIDTH = 160;       // px per step column
+const STEP_HEIGHT = 88;       // height of each node in px
+const STEP_RISE = 64;         // vertical lift each step goes up
+const AVATAR_AREA = 72;       // space above node for avatars
+const LABEL_AREA = 56;        // space below node for labels
+const CONNECTOR_HEIGHT = 4;   // px for the connector line
+
 export function HorizonTrail({
   journey,
   workspaceId,
@@ -35,192 +42,220 @@ export function HorizonTrail({
   memberPresences = [],
 }: HorizonTrailProps) {
   const totalSteps = journey.steps.length;
-  const hasScrolled = useRef(false);
 
-  // Callback ref: fires when the current step element mounts in the DOM
-  const currentStepCallbackRef = useCallback((node: HTMLDivElement | null) => {
-    if (node && !hasScrolled.current) {
-      hasScrolled.current = true;
-      // Delay to let stagger animations play out
-      setTimeout(() => {
-        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 800);
-    }
-  }, []);
+  // Canvas height: enough to accommodate the tallest step
+  // The highest step is the last one, rising by totalSteps * STEP_RISE
+  const canvasHeight = AVATAR_AREA + STEP_HEIGHT + LABEL_AREA + (totalSteps) * STEP_RISE + 80;
+  // Canvas width: all steps side by side
+  const canvasWidth = totalSteps * STEP_WIDTH + 80;
 
   return (
-    <div className="relative w-full max-h-[80vh] overflow-y-auto py-16 md:py-32 px-2 md:px-4 flex flex-col items-center bg-[radial-gradient(circle_at_50%_bottom,oklch(0.94_0.02_170/0.3),transparent_70%)] rounded-2xl md:rounded-[3rem] scroll-smooth">
-      {/* The Climbing Path Line (Bottom to Top) */}
-      <div className="absolute inset-0 pointer-events-none flex justify-center">
-        <div className="w-1 h-full bg-primary/5 mask-[linear-gradient(to_top,black,transparent)]" />
-      </div>
+    <div
+      className="relative"
+      style={{ width: canvasWidth, height: canvasHeight }}
+    >
+      {/* Connector lines between steps */}
+      <svg
+        className="absolute inset-0 pointer-events-none"
+        width={canvasWidth}
+        height={canvasHeight}
+        style={{ overflow: "visible" }}
+      >
+        {journey.steps.map((_, index) => {
+          if (index === 0) return null;
 
-      <div className="relative z-10 w-full max-w-2xl flex flex-col-reverse gap-16 md:gap-32">
-        {journey.steps.map((step, index) => {
-          const isCompleted = index < currentStepIndex;
-          const isCurrent = index === currentStepIndex;
-          const isUpcoming = index > currentStepIndex;
-          const isMilestone = (index + 1) % 5 === 0;
-          const isLeft = index % 2 === 0;
+          // Center X of current and previous step
+          const x1 = 40 + (index - 1) * STEP_WIDTH + STEP_WIDTH / 2;
+          const x2 = 40 + index * STEP_WIDTH + STEP_WIDTH / 2;
 
-          // New navigation logic
-          const isLocked = index > currentStepIndex;
-          const lectureUrl = step.type === 'lecture' 
+          // Bottom of each step node (Y from top of canvas, steps rise so higher index = lower Y value)
+          const bottomY = (step: number) =>
+            canvasHeight - LABEL_AREA - (step * STEP_RISE) - STEP_HEIGHT / 2;
+
+          const isCompleted = index <= currentStepIndex;
+
+          return (
+            <line
+              key={`connector-${index}`}
+              x1={x1}
+              y1={bottomY(index - 1)}
+              x2={x2}
+              y2={bottomY(index)}
+              stroke={isCompleted ? "oklch(0.65 0.12 170)" : "oklch(0.94 0.02 170)"}
+              strokeWidth={CONNECTOR_HEIGHT}
+              strokeDasharray={isCompleted ? "none" : "8 6"}
+              strokeLinecap="round"
+              opacity={isCompleted ? 0.8 : 0.4}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Steps */}
+      {journey.steps.map((step, index) => {
+        const isCompleted = index < currentStepIndex;
+        const isCurrent = index === currentStepIndex;
+        const isUpcoming = index > currentStepIndex;
+        const isMilestone = (index + 1) % 5 === 0;
+        const isLocked = index > currentStepIndex;
+
+        const lectureUrl =
+          step.type === "lecture"
             ? `/workspaces/${workspaceId}/subjects/${step.subjectId}/lectures/${step.lectureId}?journeyId=${journey.id}&stepIndex=${index}`
             : null;
 
-          // Filter members on this specific step
-          const membersOnStep = memberPresences.filter(
-            (p) => p.stepIndex === index
-          );
+        const membersOnStep = memberPresences.filter((p) => p.stepIndex === index);
 
-          const StepContent = (
-            <div className="flex flex-col items-center gap-4 relative group">
-              {/* Step Node (2D flat look) */}
-              <motion.div
-                layout // Enables smooth width expansion
-                whileHover={!isLocked ? { scale: 1.05, translateY: -5 } : {}}
-                style={{ 
-                  minWidth: membersOnStep.length > 1 ? `${11 + (membersOnStep.length - 1) * 2.5}rem` : '11rem' 
-                }}
-                className={cn(
-                  "relative z-20 flex items-center justify-center rounded-2xl md:rounded-3xl shadow-2xl transition-colors duration-700 h-16 md:h-24 border-b-4 md:border-b-8 active:scale-95 px-4 md:px-6 shrink-0",
-                  isCompleted && "bg-primary text-primary-foreground border-primary/20",
-                  isCurrent && "bg-accent text-accent-foreground border-accent/20 ring-8 ring-accent/20 animate-in fade-in zoom-in",
-                  isUpcoming && "bg-secondary/30 border-primary/5 text-muted-foreground border-dashed border-2",
-                  isLocked ? "cursor-not-allowed opacity-80" : "cursor-pointer"
-                )}
-                onClick={() => {
-                  if (isLocked) {
-                    toast.info("You need at least 60% on the current quiz to unlock the next horizon! 🚀", {
-                      icon: <Lock className="w-4 h-4 text-primary" />,
-                      className: "rounded-2xl border-primary/10",
-                    });
+        // Position: steps go left-to-right, each one is higher
+        const centerX = 40 + index * STEP_WIDTH + STEP_WIDTH / 2;
+        const centerY = canvasHeight - LABEL_AREA - (index * STEP_RISE) - STEP_HEIGHT / 2;
+
+        const NodeInner = (
+          <motion.div
+            layout
+            whileHover={!isLocked ? { scale: 1.07, y: -6 } : {}}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 220, damping: 20, delay: index * 0.04 }}
+            onClick={() => {
+              if (isLocked) {
+                toast.info(
+                  "You need at least 60% on the current quiz to unlock the next horizon! 🚀",
+                  {
+                    icon: <Lock className="w-4 h-4 text-primary" />,
+                    className: "rounded-2xl border-primary/10",
                   }
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  {isLocked ? (
-                    <Lock className="w-6 h-6 mb-1 opacity-40" />
-                  ) : isCompleted ? (
-                    <Check className="w-7 h-7 mb-1" />
-                  ) : isMilestone ? (
-                    <Tent className="w-7 h-7 mb-1" />
-                  ) : (
-                    <span className="text-2xl font-black mb-1">{index + 1}</span>
-                  )}
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">
-                    {isMilestone ? "Checkpoint" : isLocked ? "Locked" : "Step"}
-                  </span>
-                </div>
+                );
+              }
+            }}
+            className={cn(
+              "flex items-center justify-center rounded-2xl shadow-2xl transition-colors duration-700 border-b-4 active:scale-95 select-none",
+              "w-[9rem] h-[5.5rem]",
+              isCompleted && "bg-primary text-primary-foreground border-primary/20",
+              isCurrent &&
+                "bg-accent text-accent-foreground border-accent/20 ring-8 ring-accent/20",
+              isUpcoming &&
+                "bg-secondary/30 border-primary/5 text-muted-foreground border-dashed border-2",
+              isLocked ? "cursor-not-allowed opacity-80" : "cursor-pointer"
+            )}
+          >
+            <div className="flex flex-col items-center">
+              {isLocked ? (
+                <Lock className="w-5 h-5 mb-1 opacity-40" />
+              ) : isCompleted ? (
+                <Check className="w-6 h-6 mb-1" />
+              ) : isMilestone ? (
+                <Tent className="w-6 h-6 mb-1" />
+              ) : (
+                <span className="text-xl font-black mb-1">{index + 1}</span>
+              )}
+              <span className="text-[9px] font-bold uppercase tracking-widest opacity-70">
+                {isMilestone ? "Checkpoint" : isLocked ? "Locked" : "Step"}
+              </span>
+            </div>
+          </motion.div>
+        );
 
-                {/* Multiplayer Avatars - Gathering Spot */}
-                <div className="absolute -top-14 left-0 right-0 flex justify-center pointer-events-none">
-                  <div className="flex flex-row flex-wrap justify-center items-end gap-1 px-4 min-w-[200%] pointer-events-auto">
-                    <AnimatePresence mode="popLayout">
-                      {membersOnStep.map((member, i) => {
-                        const membersCount = membersOnStep.length;
-                        const centerIndex = (membersCount - 1) / 2;
-                        const distFromCenter = Math.abs(i - centerIndex);
-                        const yOffset = distFromCenter * 6; // Push outer edges down to form convex arc
-                        const rotation = (i - centerIndex) * 8; // Tilt outwards
-                        
-                        return (
-                          <motion.div
-                            key={member.userId}
-                            layout
-                            initial={{ opacity: 0, scale: 0.5, y: -20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.5, y: -20 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                            style={{ zIndex: 50 - Math.round(distFromCenter) }}
-                            className="relative shrink-0"
-                          >
-                            <motion.div
-                                animate={isCurrent ? {
-                                    y: [yOffset, yOffset - 8, yOffset],
-                                } : { y: yOffset }}
-                                style={{ rotate: rotation }}
-                                transition={{
-                                    repeat: isCurrent ? Infinity : 0,
-                                    duration: 2.5,
-                                    ease: "easeInOut",
-                                    delay: i * 0.15 // Stagger the bounce
-                                }}
-                                className="relative group/avatar origin-bottom"
-                            >
-                                <Avatar className="w-10 h-10 ring-4 ring-background shadow-xl hover:scale-110 hover:z-50 transition-transform">
-                                  <AvatarImage src={member.photoURL || undefined} />
-                                  <AvatarFallback className="bg-primary/10 text-primary font-bold">{member.displayName[0]}</AvatarFallback>
-                                </Avatar>
-                                
-                                {/* Online Indicator Dot */}
-                                {member.isOnline && (
-                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background flex items-center justify-center border-2 border-background z-20">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse ring-2 ring-green-500/20" />
-                                  </div>
-                                )}
+        return (
+          <div
+            key={step.id}
+            className="absolute"
+            style={{
+              left: centerX - 72, // 72 = half node width (9rem/2)
+              top: centerY - STEP_HEIGHT / 2,
+            }}
+          >
+            {/* Avatars above the node */}
+            <div className="absolute bottom-full mb-2 left-0 right-0 flex justify-center pointer-events-none">
+              <div className="flex flex-row justify-center items-end gap-1 pointer-events-auto">
+                <AnimatePresence mode="popLayout">
+                  {membersOnStep.map((member, i) => {
+                    const membersCount = membersOnStep.length;
+                    const centerIdx = (membersCount - 1) / 2;
+                    const distFromCenter = Math.abs(i - centerIdx);
+                    const yOffset = distFromCenter * 5;
+                    const rotation = (i - centerIdx) * 8;
 
-                                {/* Name Tooltip (Mini) */}
-                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 px-2.5 py-1.5 bg-foreground text-background text-[10px] font-bold rounded-lg opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
-                                  {member.displayName}
-                                </div>
-                            </motion.div>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </motion.div>
+                    return (
+                      <motion.div
+                        key={member.userId}
+                        layout
+                        initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        style={{ zIndex: 50 - Math.round(distFromCenter) }}
+                        className="relative shrink-0"
+                      >
+                        <motion.div
+                          animate={
+                            isCurrent
+                              ? { y: [yOffset, yOffset - 8, yOffset] }
+                              : { y: yOffset }
+                          }
+                          style={{ rotate: rotation }}
+                          transition={{
+                            repeat: isCurrent ? Infinity : 0,
+                            duration: 2.5,
+                            ease: "easeInOut",
+                            delay: i * 0.15,
+                          }}
+                          className="relative group/avatar origin-bottom"
+                        >
+                          <Avatar className="w-9 h-9 ring-4 ring-background shadow-xl hover:scale-110 hover:z-50 transition-transform">
+                            <AvatarImage src={member.photoURL || undefined} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                              {member.displayName[0]}
+                            </AvatarFallback>
+                          </Avatar>
 
-              {/* Content Label */}
-              <div className={cn(
-                "px-4 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl bg-background/90 backdrop-blur-md border border-primary/10 shadow-2xl transition-all duration-300",
-                "relative mt-3 text-center md:mt-0 md:absolute md:top-1/2 md:-translate-y-1/2 md:whitespace-nowrap",
-                isLeft ? "md:left-full md:ml-6 md:text-left" : "md:right-full md:mr-6 md:text-right",
-                isUpcoming ? "opacity-40" : "opacity-100"
-              )}>
-                <div className="flex items-center gap-2">
-                  {step.type === 'placeholder' && <Sparkles className="w-3.5 h-3.5 text-primary" />}
-                  <h5 className="text-sm font-black tracking-tight">{step.title}</h5>
-                </div>
-                <p className="text-[9px] uppercase tracking-widest font-bold text-primary/60">
-                  {step.type === 'lecture' ? step.subjectName : "Future Landmark"}
-                </p>
+                          {member.isOnline && (
+                            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-background flex items-center justify-center border-2 border-background z-20">
+                              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse ring-2 ring-green-500/20" />
+                            </div>
+                          )}
+
+                          {/* Name tooltip */}
+                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-foreground text-background text-[9px] font-bold rounded-lg opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                            {member.displayName}
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               </div>
             </div>
-          );
 
-          return (
-            <motion.div
-              key={step.id}
-              ref={isCurrent ? currentStepCallbackRef : undefined}
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              whileInView={{ opacity: 1, scale: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{
-                duration: 0.5,
-                delay: (totalSteps - index) * 0.1, // Stagger from bottom
-                type: "spring",
-                stiffness: 120,
-              }}
+            {/* Step node */}
+            {!isLocked && lectureUrl ? (
+              <Link href={lectureUrl}>{NodeInner}</Link>
+            ) : (
+              NodeInner
+            )}
+
+            {/* Label below the node */}
+            <div
               className={cn(
-                "relative flex flex-col md:flex-row items-center justify-center w-full",
-                isLeft ? "md:justify-start md:pl-20" : "md:justify-end md:pr-20"
+                "mt-3 px-3 py-2 rounded-xl bg-background/90 backdrop-blur-md border border-primary/10 shadow-xl text-center max-w-[9rem]",
+                isUpcoming ? "opacity-40" : "opacity-100"
               )}
             >
-              {!isLocked && lectureUrl ? (
-                <Link href={lectureUrl}>
-                  {StepContent}
-                </Link>
-              ) : (
-                StepContent
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
+              <div className="flex items-center justify-center gap-1">
+                {step.type === "placeholder" && (
+                  <Sparkles className="w-3 h-3 text-primary shrink-0" />
+                )}
+                <span className="text-[11px] font-black tracking-tight line-clamp-2 leading-tight">
+                  {step.title}
+                </span>
+              </div>
+              <p className="text-[8px] uppercase tracking-widest font-bold text-primary/60 mt-0.5">
+                {step.type === "lecture" ? step.subjectName : "Future Landmark"}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
