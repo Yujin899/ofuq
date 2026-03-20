@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -50,17 +50,16 @@ export function ConnectTelegramModal() {
         if (!user) return;
         setLoading(true);
         try {
-            const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const expiresAt = new Date(Date.now() + 10 * 60000);
-            
-            await addDoc(collection(db, "telegramCodes"), {
-                code: newCode,
-                userId: user.uid,
-                createdAt: serverTimestamp(),
-                expiresAt: Timestamp.fromDate(expiresAt)
+            const res = await fetch("/api/telegram/link", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "generate-code", userId: user.uid })
             });
 
-            setCode(newCode);
+            if (!res.ok) throw new Error("Failed to generate code");
+            
+            const data = await res.json();
+            setCode(data.code);
             setTimeLeft(600);
             toast.success("Code generated!");
         } catch (_error) {
@@ -73,7 +72,14 @@ export function ConnectTelegramModal() {
     const handleDisconnect = async () => {
         if (!user) return;
         try {
-            await setDoc(doc(db, "users", user.uid), { telegramChatId: null }, { merge: true });
+            const res = await fetch("/api/telegram/link", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "disconnect", userId: user.uid })
+            });
+
+            if (!res.ok) throw new Error("Failed to disconnect");
+
             toast.success("Disconnected from Telegram.");
         } catch (_error) {
             toast.error("Failed to disconnect.");
