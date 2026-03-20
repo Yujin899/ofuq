@@ -70,7 +70,8 @@ This is a BILINGUAL introduction. You MUST return an object, not a string.
 - "en" (string): The highly engaging, clinical English introduction. Write 3 to 4 paragraphs. OPEN with a vivid clinical patient scenario that makes the topic feel urgent and real — describe a real patient walking into a clinic with a specific complaint, what the dentist sees, and why this lecture's content is the key to handling it. Connect the science to what a dentist will actually SEE, TOUCH, and DECIDE clinically. Be charismatic, weave in storytelling, and use light humor where appropriate.
   * CRITICAL ENDING: You MUST end the English intro with this EXACT sentence, word for word: "Now, dive into the lecture, crush the quiz, and then come back and re-read this intro. You'll see it differently."
 
-- "ar" (string): A highly accurate, friendly translation of the English intro in Egyptian Arabic, tailored for dental students. Write it naturally and conversationally — as if Dr. Molar is speaking directly to his students in the University Lecture Hall. You MUST keep complex medical and anatomical terminology in English, but immediately follow it with a clear Arabic explanation inside parentheses. Example: "Endodontics (علاج الجذور)". Explain concepts humorously and relatably in Egyptian Arabic. Do NOT use formal Modern Standard Arabic — use natural Egyptian dialect.
+- "ar" (string): A highly accurate, friendly translation of the English intro in Egyptian Arabic, tailored for dental students. Write it naturally and conversationally — as if Dr. Molar is speaking directly to his students in the University Lecture Hall. Explain concepts humorously and relatably in Egyptian Arabic. Do NOT use formal Modern Standard Arabic — use natural Egyptian dialect.
+  * CRITICAL LANGUAGE RULE: ALL medical, anatomical, and Latin terminology MUST remain written in English exactly as they appear in the source material. Immediately follow each term with a clear, simple Arabic explanation inside parentheses. Example: "Junctional Epithelium (الطبقة اللي بتربط اللثة بالسن)". NEVER translate or transliterate a medical or Latin term into Arabic letters — keep it in the Latin alphabet.
   * CRITICAL ENDING: End the Arabic intro with this EXACT sentence, word for word: "دلوقتي يلا ذاكروا المحاضرة وحلوا الكويز، وتعالوا اقرأوا المقدمة دي تاني.. هتلاقوا نظرتكم اختلفت تماماً."
 
 3. "pre_quiz" (array of 2 to 3 objects):
@@ -86,7 +87,7 @@ Each object must have exactly these keys: "type", "question", "options", "correc
 - "question" (string): The question stem.
 - "options" (array of strings): 4 to 5 answer choices. No trivial rephrasing of the same concept. Each distractor must be plausible and test a different misconception.
 - "correctAnswers" (array of integers): 0-indexed indices of correct options.
-- "explanation" (string): Detailed explanation using medical reasoning.
+- "explanation" (string): CRITICAL — Write the entire explanation in natural, conversational Egyptian Arabic dialect (NOT formal Modern Standard Arabic). Explain like Dr. Molar is talking directly to his students. For EVERY question, explain: (1) WHY the correct answer(s) are correct — cite the underlying mechanism or clinical principle. (2) WHY EACH distractor is wrong — explain the specific misconception it tests. NEVER refer to options by their array index or letter (e.g., DO NOT say "الخيار 0" or "Option A"). Instead, ALWAYS refer to the ACTUAL CONTENT of the option. CRITICAL LANGUAGE RULE: ALL medical, anatomical, and Latin terminology MUST remain written in English exactly as they appear in the source material, followed immediately by a simple Arabic explanation in parentheses if needed. NEVER translate or transliterate medical or Latin terms into Arabic letters.
 
 Question type rules:
 - "single": Exactly ONE correct answer. correctAnswers has ONE index.
@@ -96,12 +97,5 @@ Question type rules:
 Distribution rules:
 - Minimum 5 "single" questions, minimum 5 "multi" questions, minimum 5 "case" questions.
 - Spread the types throughout the array — NEVER cluster all of one type together. Mix them evenly.
-
-CRITICAL EXPLANATION RULE:
-In the "explanation" field, NEVER refer to options by their array index or letter (e.g., DO NOT say "Option 0 is wrong", "Option A is correct", or "Wrong 0").
-Instead, ALWAYS refer to the ACTUAL CONTENT of the option (e.g., "The option suggesting 'calcium hydroxide' is incorrect because...").
-For EVERY question, explain:
-1. WHY the correct answer(s) are correct — cite the underlying mechanism or clinical principle.
-2. WHY EACH distractor is wrong — explain the specific misconception it tests.
 
 Output ONLY valid JSON. No markdown. No intro text. No explanation. A linter parses your output directly.`;
