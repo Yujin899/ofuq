@@ -12,7 +12,8 @@ import {
     BookOpen,
     ShieldCheck,
     Link2,
-    Users
+    Users,
+    Settings2
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -230,6 +231,12 @@ export function Sidebar() {
                     <DropdownMenuContent className="w-56" align="center" side="top" sideOffset={8}>
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        <Link href="/settings">
+                            <DropdownMenuItem className="gap-2 cursor-pointer">
+                                <Settings2 className="h-4 w-4" />
+                                <span>Settings</span>
+                            </DropdownMenuItem>
+                        </Link>
                         <DropdownMenuItem onClick={() => signOut()} className="text-destructive focus:text-destructive gap-2 cursor-pointer">
                             <LogOut className="h-4 w-4" />
                             <span>Log out</span>

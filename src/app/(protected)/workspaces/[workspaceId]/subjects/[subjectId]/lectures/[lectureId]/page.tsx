@@ -1,9 +1,10 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
-import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, FieldValue } from "firebase/firestore";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, FieldValue, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { TelegramBanner } from "@/components/timer/telegram-banner";
 import { Lecture, QuizQuestion } from "@/types/lecture";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +90,7 @@ export default function LecturePage() {
     const [timeRemaining, setTimeRemaining] = useState(0); 
     const [pomodoroCount, setPomodoroCount] = useState(1);
     const [isRunning, setIsRunning] = useState(false);
+    const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
 
     // Track total focus time for saving to dashboard at the end
     const accumulatedFocusRef = useRef(0);
@@ -111,6 +113,16 @@ export default function LecturePage() {
     const [celebrate, setCelebrate] = useState(false);
 
     useEffect(() => {
+        if (!user) return;
+        const unsub = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+            if (docSnap.exists()) {
+                setTelegramChatId(docSnap.data().telegramChatId || null);
+            }
+        });
+        return () => unsub();
+    }, [user]);
+
+    useEffect(() => {
         if (!workspaceId || !subjectId || !lectureId) return;
         const fetchLecture = async () => {
             const ref = doc(db, "workspaces", workspaceId, "subjects", subjectId, "lectures", lectureId);
@@ -128,13 +140,32 @@ export default function LecturePage() {
         }
     }, []);
 
-    const sendNotification = (title: string, body: string) => {
+    const sendNotification = useCallback(async (title: string, body: string, type?: "work_end" | "break_end", mins?: number) => {
+        // 1. Browser/Web Notification
         if ("Notification" in window && Notification.permission === "granted") {
             new Notification(title, { body });
         } else {
             toast(title, { description: body, duration: 8000 });
         }
-    };
+
+        // 2. Telegram Notification
+        if (telegramChatId) {
+            try {
+                await fetch("/api/telegram/notify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chatId: telegramChatId,
+                        type: type || "work_end",
+                        sessionNumber: pomodoroCount,
+                        minutes: mins || 25
+                    })
+                });
+            } catch (error) {
+                console.error("Failed to send Telegram notification:", error);
+            }
+        }
+    }, [telegramChatId, pomodoroCount]);
 
     // Pomodoro Countdown Logic
     useEffect(() => {
@@ -156,12 +187,12 @@ export default function LecturePage() {
                     setTimeRemaining(nextTime);
                     endTimeRef.current = Date.now() + nextTime;
                     setIsRunning(true); // auto-start break
-                    sendNotification("ofuq — Break Time! 🧠", `Great focus session. Rest for ${breakLength} minutes.`);
+                    sendNotification("ofuq — Break Time! 🧠", `Great focus session. Rest for ${breakLength} minutes.`, "work_end", parseFloat(focusLength));
                 } else if (pomodoroMode === "break") {
                     // Back to settings waiting for next
                     setPomodoroMode("settings");
                     setPomodoroCount(c => c + 1);
-                    sendNotification("ofuq — Back to Work! 🔥", `Break's over. Ready for session ${pomodoroCount + 1}?`);
+                    sendNotification("ofuq — Back to Work! 🔥", `Break's over. Ready for session ${pomodoroCount + 1}?`, "break_end", parseFloat(breakLength));
                 }
             } else {
                 setTimeRemaining(remaining);
@@ -496,6 +527,8 @@ export default function LecturePage() {
                 {/* ─────────── STEP 2: ACTIVE SESSION & QUIZ ─────────── */}
                 {step === "timer" && (
                     <motion.div key="timer" {...pageVariants} className="flex flex-col min-h-screen pb-24 relative -mx-4 sm:mx-0">
+                        {pomodoroMode === "settings" && !showQuiz && <TelegramBanner />}
+                        
                         {/* Pomodoro & Focus Block */}
                         <motion.div
                             layout
