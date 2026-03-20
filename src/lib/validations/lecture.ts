@@ -18,6 +18,10 @@ export const LectureImportSchema = z.object({
         en: z.string().min(1, "English intro is required"),
         ar: z.string().min(1, "Arabic intro is required"),
     }),
+    pre_quiz: z.array(z.object({
+        question: z.string().min(1),
+        hint: z.string().min(1),
+    })).min(2).max(3).optional(),
     quiz: z
         .array(QuizQuestionSchema)
         .min(20, "Quiz must have at least 20 questions")

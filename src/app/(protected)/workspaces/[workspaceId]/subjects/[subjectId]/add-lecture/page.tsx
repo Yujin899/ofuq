@@ -412,16 +412,60 @@ export default function AddLecturePage() {
                                     <Textarea
                                         id="json-input"
                                         placeholder="Paste the raw JSON from Claude here..."
-                                        className="min-h-[350px] font-mono text-xs leading-relaxed rounded-2xl"
+                                        className="min-h-[300px] font-mono text-xs leading-relaxed rounded-2xl mb-4"
                                         value={rawJson}
                                         onChange={(e) => setRawJson(e.target.value)}
                                         disabled={submitting}
                                     />
+
+                                    {/* Preview Section */}
+                                    {rawJson.trim() && (
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                                Live Preview
+                                            </div>
+                                            
+                                            {(() => {
+                                                try {
+                                                    const p = JSON.parse(rawJson);
+                                                    return (
+                                                        <div className="space-y-4 border rounded-2xl p-4 bg-muted/5">
+                                                            <div>
+                                                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Title</h4>
+                                                                <p className="text-sm font-semibold">{p.title || "Untitled"}</p>
+                                                            </div>
+                                                            
+                                                            {p.pre_quiz && Array.isArray(p.pre_quiz) && (
+                                                                <div>
+                                                                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Pre-Quiz ({p.pre_quiz.length})</h4>
+                                                                     <div className="space-y-2">
+                                                                        {p.pre_quiz.map((pq: any, i: number) => (
+                                                                            <div key={i} className="text-xs bg-white p-2 rounded-xl border border-primary/5 shadow-xs">
+                                                                                <span className="font-bold text-primary mr-1">Q{i+1}:</span> {pq.question}
+                                                                            </div>
+                                                                        ))}
+                                                                     </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div>
+                                                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Quiz</h4>
+                                                                <p className="text-xs">{p.quiz?.length || 0} questions parsed</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                } catch {
+                                                    return <p className="text-xs text-destructive bg-destructive/5 p-3 rounded-xl border border-destructive/10 italic">Waiting for valid JSON structure...</p>;
+                                                }
+                                            })()}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <Button
                                     onClick={handleSubmit}
-                                    className="w-full py-6 text-base font-semibold shadow-lg shadow-primary/20 rounded-2xl gap-2"
+                                    className="w-full py-6 text-base font-semibold shadow-lg shadow-primary/20 rounded-2xl gap-2 mt-4"
                                     disabled={submitting}
                                 >
                                     {submitting ? (
