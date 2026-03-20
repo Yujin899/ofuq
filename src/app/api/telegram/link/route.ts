@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, collection, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   try {
@@ -14,19 +13,19 @@ export async function POST(req: Request) {
       const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const expiresAt = new Date(Date.now() + 10 * 60000);
       
-      await addDoc(collection(db, "telegramCodes"), {
+      await adminDb.collection("telegramCodes").add({
         code: newCode,
         userId: userId,
-        createdAt: serverTimestamp(),
-        expiresAt: Timestamp.fromDate(expiresAt)
+        createdAt: new Date(),
+        expiresAt: expiresAt
       });
 
       return NextResponse.json({ code: newCode });
     }
 
     if (action === "disconnect") {
-      const userRef = doc(db, "users", userId);
-      await setDoc(userRef, { telegramChatId: null }, { merge: true });
+      const userRef = adminDb.collection("users").doc(userId);
+      await userRef.set({ telegramChatId: null }, { merge: true });
       return NextResponse.json({ success: true });
     }
 

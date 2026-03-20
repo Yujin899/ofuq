@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, deleteDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 import { sendTelegramNotification } from "@/lib/telegram";
 
 export async function POST(req: Request) {
@@ -25,9 +24,10 @@ export async function POST(req: Request) {
       }
 
       // Look up code in Firestore
-      const codesRef = collection(db, "telegramCodes");
-      const q = query(codesRef, where("code", "==", code), limit(1));
-      const querySnap = await getDocs(q);
+      const querySnap = await adminDb.collection("telegramCodes")
+        .where("code", "==", code)
+        .limit(1)
+        .get();
 
       if (querySnap.empty) {
         await sendTelegramNotification(chatId, "❌ Invalid code.");
@@ -40,18 +40,18 @@ export async function POST(req: Request) {
 
       if (expiresAt && expiresAt < new Date()) {
         await sendTelegramNotification(chatId, "❌ Code expired. Please generate a new one from the app.");
-        await deleteDoc(doc(db, "telegramCodes", codeDoc.id));
+        await codeDoc.ref.delete();
         return NextResponse.json({ ok: true });
       }
 
       // Valid code! Link the user
       const userId = codeData.userId;
-      const userRef = doc(db, "users", userId);
+      const userRef = adminDb.collection("users").doc(userId);
       
-      await setDoc(userRef, { telegramChatId: chatId }, { merge: true });
+      await userRef.set({ telegramChatId: chatId }, { merge: true });
       
       // Cleanup
-      await deleteDoc(doc(db, "telegramCodes", codeDoc.id));
+      await codeDoc.ref.delete();
 
       await sendTelegramNotification(chatId, "✅ Connected! You'll now receive Pomodoro notifications here.");
     }
