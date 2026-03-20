@@ -80,7 +80,7 @@ Each object must have exactly these keys:
 - "question" (string): An open-ended question with no options.
 - "hint" (string): A one-sentence nudge if the student is completely stuck. Not the answer — just a direction.
 
-4. "quiz" (array of 20 to 25 objects):
+4. "quiz" (array of 10 to 15 objects):
 Each object must have exactly these keys: "type", "question", "options", "correctAnswers", and "explanation".
 
 - "type" (string): One of "single", "multi", or "case".
@@ -95,7 +95,7 @@ Question type rules:
 - "case": Clinical scenario question. The stem MUST start with "A patient presents". These should be the hardest questions, requiring clinical reasoning and application of concepts.
 
 Distribution rules:
-- Minimum 5 "single" questions, minimum 5 "multi" questions, minimum 5 "case" questions.
+- Minimum 5 "single" questions, minimum 2 "multi" questions, minimum 1 "case" questions.
 - Spread the types throughout the array — NEVER cluster all of one type together. Mix them evenly.
 
 Output ONLY valid JSON. No markdown. No intro text. No explanation. A linter parses your output directly.`;

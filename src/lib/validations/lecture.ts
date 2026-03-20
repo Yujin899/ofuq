@@ -24,8 +24,8 @@ export const LectureImportSchema = z.object({
     })).min(2).max(3).optional(),
     quiz: z
         .array(QuizQuestionSchema)
-        .min(20, "Quiz must have at least 20 questions")
-        .max(25, "Quiz must have no more than 25 questions"),
+        .min(10, "Quiz must have at least 10 questions")
+        .max(15, "Quiz must have no more than 15 questions"),
 });
 
 export type LectureImport = z.infer<typeof LectureImportSchema>;
