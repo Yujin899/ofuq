@@ -471,6 +471,7 @@ export default function LecturePage() {
                                                         initial={{ opacity: 0, height: 0 }} 
                                                         animate={{ opacity: 1, height: "auto" }}
                                                         className="text-sm text-foreground/80 bg-accent/10 px-4 py-3 rounded-2xl border border-accent/20"
+                                                        dir="rtl"
                                                     >
                                                         <span className="font-semibold text-accent-foreground/70 text-xs uppercase tracking-wider block mb-1">Hint</span>
                                                         {pq.hint}
@@ -689,6 +690,7 @@ export default function LecturePage() {
                                                     ? "border-green-400/40 bg-green-500/5 text-green-700"
                                                     : "border-red-400/40 bg-red-500/5 text-red-700"
                                             )}
+                                            dir="rtl"
                                         >
                                             <p className="font-semibold mb-1">
                                                 {answers[answers.length - 1]?.correct ? "✓ Correct!" : "✗ Not quite."}

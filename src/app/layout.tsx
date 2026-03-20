@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, Amiri } from "next/font/google";
+import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const amiri = Amiri({ subsets: ["arabic"], weight: ["400", "700"], variable: "--font-amiri" });
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({ 
+  subsets: ["arabic"], 
+  weight: ["400", "500", "600", "700"], 
+  variable: "--font-arabic" 
+});
+
 
 export const metadata: Metadata = {
   title: "Ofuq",
@@ -19,12 +24,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${amiri.variable} font-sans antialiased text-foreground bg-background`}>
+      <body className={`${inter.variable} ${ibmPlexSansArabic.variable} font-sans antialiased text-foreground bg-background`}>
         <AuthProvider>
           {children}
           <Toaster />
         </AuthProvider>
       </body>
     </html>
+
   );
 }
